@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import '../../../core/providers/sales_repository_provider.dart';
 import '../../../core/providers/analytics_provider.dart';
 import '../../../core/providers/expenses_provider.dart';
 import '../../../core/utils/report_filter.dart';
@@ -429,7 +429,11 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     BuildContext context,
     WidgetRef ref,
     dynamic invoice,
-  ) {
+  ) async {
+    final repo = ref.read(salesRepositoryProvider);
+
+    final items = await repo.getInvoiceItems(invoice.id);
+
     showDialog(
       context: context,
 
@@ -437,7 +441,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
         title: Text(invoice.invoiceNumber),
 
         content: SizedBox(
-          width: 400,
+          width: 450,
 
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -454,7 +458,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
 
-              const SizedBox(height: 10),
+              const SizedBox(height: 20),
 
               const Text(
                 "Invoice Items",
@@ -463,7 +467,19 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
               const SizedBox(height: 10),
 
-              const Text("Items details will be loaded here"),
+              ...items.map(
+                (item) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+
+                  title: Text(item.itemName),
+
+                  subtitle: Text(
+                    "Qty: ${item.quantity} × ${item.unitPrice} EGP",
+                  ),
+
+                  trailing: Text("${item.total} EGP"),
+                ),
+              ),
             ],
           ),
         ),
