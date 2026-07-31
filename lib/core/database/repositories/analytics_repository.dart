@@ -61,47 +61,54 @@ class AnalyticsRepository {
 
   Future<double> getProfit({
     required DateTime from,
-
     required DateTime to,
   }) async {
     final sales = await getTotalSales(from: from, to: to);
 
     final cost = await getTotalCost(from: from, to: to);
 
-    return sales - cost;
+    final expenseResult = await db
+        .customSelect(
+          '''
+        SELECT COALESCE(SUM(amount),0) AS total
+        FROM expenses
+
+        WHERE expense_date >= ?
+        AND expense_date <= ?
+
+        ''',
+
+          variables: [Variable.withDateTime(from), Variable.withDateTime(to)],
+        )
+        .getSingle();
+
+    final expenses = expenseResult.read<double>('total');
+
+    return sales - cost - expenses;
   }
 
   Future<List<Map<String, dynamic>>> getSalesByDay({
     required DateTime from,
-
     required DateTime to,
   }) async {
     final result = await db
         .customSelect(
           '''
-      SELECT
-
+    SELECT
       DATE(sale_date) as day,
+      COALESCE(SUM(total),0) as total
 
-      SUM(total) as total
+    FROM sales
 
+    WHERE sale_date >= ?
+    AND sale_date <= ?
+    AND is_returned = 0
 
-      FROM sales
+    GROUP BY DATE(sale_date)
 
+    ORDER BY DATE(sale_date)
 
-      WHERE sale_date >= ?
-
-      AND sale_date <= ?
-
-      AND is_returned = 0
-
-
-      GROUP BY DATE(sale_date)
-
-
-      ORDER BY DATE(sale_date)
-
-      ''',
+    ''',
 
           variables: [Variable.withDateTime(from), Variable.withDateTime(to)],
         )
@@ -109,7 +116,7 @@ class AnalyticsRepository {
 
     return result.map((row) {
       return {
-        "day": row.read<String>('day'),
+        "day": row.read<String?>('day') ?? "",
 
         "total": row.read<double?>('total') ?? 0,
       };
@@ -149,14 +156,36 @@ class AnalyticsRepository {
 
   Future<FinancialSummary> getFinancialSummary({
     required DateTime from,
-
     required DateTime to,
   }) async {
     final sales = await getTotalSales(from: from, to: to);
 
     final cost = await getTotalCost(from: from, to: to);
 
-    return FinancialSummary(sales: sales, cost: cost, profit: sales - cost);
+    final expenseResult = await db
+        .customSelect(
+          '''
+        SELECT COALESCE(SUM(amount),0) AS total
+        FROM expenses
+
+        WHERE expense_date >= ?
+        AND expense_date <= ?
+
+        ''',
+
+          variables: [Variable.withDateTime(from), Variable.withDateTime(to)],
+        )
+        .getSingle();
+
+    final expenses = expenseResult.read<double>('total');
+
+    return FinancialSummary(
+      sales: sales,
+
+      cost: cost,
+
+      profit: sales - cost - expenses,
+    );
   }
 
   // ============================
@@ -224,6 +253,76 @@ class AnalyticsRepository {
         "quantity": row.read<int?>('quantity') ?? 0,
 
         "revenue": row.read<double?>('revenue') ?? 0,
+      };
+    }).toList();
+  }
+
+  Future<int> getOrdersByDate({
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final result = await db
+        .customSelect(
+          '''
+    SELECT COUNT(*) as count
+    FROM sales
+
+    WHERE sale_date >= ?
+    AND sale_date <= ?
+
+    ''',
+
+          variables: [Variable.withDateTime(from), Variable.withDateTime(to)],
+        )
+        .getSingle();
+
+    return result.read<int>('count');
+  }
+
+  Future<List<Map<String, dynamic>>> getProfitByDay({
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final result = await db
+        .customSelect(
+          '''
+    SELECT
+      DATE(s.sale_date) AS day,
+
+      s.total AS sales,
+
+      (
+        SELECT COALESCE(SUM(si.quantity * si.cost_price),0)
+        FROM sale_items si
+        WHERE si.sale_id = s.id
+      ) AS cost
+
+    FROM sales s
+
+    WHERE s.sale_date >= ?
+    AND s.sale_date <= ?
+    AND s.is_returned = 0
+
+    ORDER BY s.sale_date
+
+    ''',
+          variables: [Variable.withDateTime(from), Variable.withDateTime(to)],
+        )
+        .get();
+
+    return result.map((row) {
+      final sales = row.read<double?>('sales') ?? 0;
+
+      final cost = row.read<double?>('cost') ?? 0;
+
+      return {
+        "day": row.read<String?>('day') ?? "",
+
+        "sales": sales,
+
+        "cost": cost,
+
+        "profit": sales - cost,
       };
     }).toList();
   }

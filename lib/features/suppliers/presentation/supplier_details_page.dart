@@ -90,8 +90,10 @@ class SupplierDetailsPage extends ConsumerWidget {
                     ),
                   );
 
+                  ref.invalidate(suppliersRepositoryProvider);
+
                   if (context.mounted) {
-                    Navigator.pop(context);
+                    Navigator.pop(context, true);
                   }
                 },
 
@@ -144,8 +146,10 @@ class SupplierDetailsPage extends ConsumerWidget {
                     ),
                   );
 
+                  ref.invalidate(suppliersRepositoryProvider);
+
                   if (context.mounted) {
-                    Navigator.pop(context);
+                    Navigator.pop(context, true);
                   }
                 },
 

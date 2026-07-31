@@ -1,214 +1,195 @@
-import 'dart:io';
+import 'dart:async';
 import 'dart:ffi';
+import 'dart:io';
+import 'dart:isolate';
 
+import 'printer_isolate.dart';
 import 'package:ffi/ffi.dart';
 import 'package:win32/win32.dart';
 
 import '../database/app_database.dart';
 
 class ThermalPrinterService {
+  static const String printerName = "BIXOLON SRP-330II";
+
   static Future<void> printInvoice({
     required Sale sale,
     required List<SaleItem> items,
   }) async {
     if (!Platform.isWindows) {
-      throw Exception("Only Windows supported");
+      throw Exception("Windows only");
     }
 
-    await _printWindows(sale, items);
+    final bytes = _buildReceipt(sale, items);
+
+    final port = ReceivePort();
+
+    await Isolate.spawn(printerWorker, [port.sendPort, printerName, bytes]);
+
+    final result = await port.first.timeout(
+      const Duration(seconds: 10),
+
+      onTimeout: () {
+        return "Printer timeout";
+      },
+    );
+
+    port.close();
+
+    if (result != "OK") {
+      throw Exception(result);
+    }
   }
 
   static Future<void> _printWindows(Sale sale, List<SaleItem> items) async {
-    const printerName = "BIXOLON SRP-330II";
+    await _checkPrinter();
 
-    final List<int> bytes = [];
-
-    void add(String text) {
-      bytes.addAll(text.codeUnits);
-    }
-
-    String line() => "================================================\n";
-
-    String dash() => "------------------------------------------------\n";
-
-    void align(int value) {
-      bytes.addAll([0x1B, 0x61, value]);
-    }
-
-    void bold(bool value) {
-      bytes.addAll([0x1B, 0x45, value ? 1 : 0]);
-    }
-
-    void size(int value) {
-      bytes.addAll([0x1D, 0x21, value]);
-    }
-
-    // INIT
-
-    bytes.addAll([0x1B, 0x40]);
-
-    // HEADER
-
-    align(1);
-
-    bold(true);
-
-    size(0x11);
-
-    add("LINGO STORE\n");
-
-    size(0x00);
-
-    bold(false);
-
-    add("POS & INVENTORY SYSTEM\n");
-
-    add("Tel: 01552854444\n");
-
-    add(line());
-
-    // INFO
-
-    align(0);
-
-    add("Invoice No : ${sale.invoiceNumber}\n");
-
-    add("Date       : ${sale.saleDate}\n");
-
-    add("Cashier    : Admin\n");
-
-    add(dash());
-
-    // TABLE HEADER
-
-    bold(true);
-
-    add("ITEM            QTY   PRICE   TOTAL\n");
-
-    bold(false);
-
-    add(dash());
-
-    // ITEMS
-
-    for (final item in items) {
-      String name = item.itemName;
-
-      if (name.length > 15) {
-        name = name.substring(0, 15);
-      }
-
-      final price = item.total / item.quantity;
-
-      final text =
-          name.padRight(16) +
-          item.quantity.toString().padLeft(4) +
-          price.toStringAsFixed(0).padLeft(8) +
-          item.total.toStringAsFixed(0).padLeft(9) +
-          "\n";
-
-      add(text);
-    }
-
-    add(dash());
-
-    // TOTAL
-
-    align(1);
-
-    bold(true);
-
-    size(0x10);
-
-    add("TOTAL\n");
-
-    add("${sale.total} EGP\n");
-
-    size(0x00);
-
-    bold(false);
-
-    add(line());
-
-    // PAYMENT
-
-    align(0);
-
-    add("Payment : Cash\n");
-
-    add("Paid    : ${sale.total} EGP\n");
-
-    add("Change  : 0 EGP\n");
-
-    add(dash());
-
-    // FOOTER
-
-    align(1);
-
-    add("Thank You For Your Purchase\n");
-
-    add("Visit Again ♥\n");
-
-    bold(true);
-
-    add("LINGO STORE\n");
-
-    bold(false);
-
-    add("\n\n\n\n");
-
-    // CUT
-
-    bytes.addAll([0x1D, 0x56, 0x00]);
-
-    // RAW PRINT WINDOWS
+    final bytes = _buildReceipt(sale, items);
 
     final printerPtr = printerName.toNativeUtf16();
 
     final handle = calloc<HANDLE>();
 
-    final opened = OpenPrinter(printerPtr, handle, nullptr);
+    try {
+      final result = OpenPrinter(printerPtr, handle, nullptr);
 
-    calloc.free(printerPtr);
+      if (result == 0) {
+        throw Exception("Cannot open printer");
+      }
 
-    if (opened == 0) {
+      final doc = calloc<DOC_INFO_1>();
+
+      final docName = "LINGO STORE".toNativeUtf16();
+
+      final raw = "RAW".toNativeUtf16();
+
+      try {
+        doc.ref.pDocName = docName;
+
+        doc.ref.pDatatype = raw;
+
+        final start = StartDocPrinter(handle.value, 1, doc.cast());
+
+        if (start == 0) {
+          throw Exception("Start document failed");
+        }
+
+        StartPagePrinter(handle.value);
+
+        final buffer = calloc<Uint8>(bytes.length);
+
+        final written = calloc<DWORD>();
+
+        try {
+          buffer.asTypedList(bytes.length).setAll(0, bytes);
+
+          final ok = WritePrinter(handle.value, buffer, bytes.length, written);
+
+          if (ok == 0) {
+            throw Exception("Printer write failed");
+          }
+        } finally {
+          calloc.free(buffer);
+
+          calloc.free(written);
+        }
+
+        EndPagePrinter(handle.value);
+
+        EndDocPrinter(handle.value);
+      } finally {
+        calloc.free(doc);
+
+        calloc.free(docName);
+
+        calloc.free(raw);
+      }
+    } finally {
+      ClosePrinter(handle.value);
+
+      calloc.free(handle);
+
+      calloc.free(printerPtr);
+    }
+  }
+
+  static Future<void> _checkPrinter() async {
+    final result = await Process.run("powershell", [
+      "-Command",
+      """
+        \$p = Get-Printer -Name '$printerName' -ErrorAction SilentlyContinue;
+        if(\$null -eq \$p){
+          exit 1
+        }
+
+        if(\$p.PrinterStatus -eq 'Offline'){
+          exit 2
+        }
+
+        exit 0
+        """,
+    ]).timeout(const Duration(seconds: 3));
+
+    if (result.exitCode == 1) {
       throw Exception("Printer not found");
     }
 
-    final doc = calloc<DOC_INFO_1>();
+    if (result.exitCode == 2) {
+      throw Exception("Printer is offline");
+    }
+  }
 
-    final docName = "Flutter POS".toNativeUtf16();
+  static List<int> _buildReceipt(Sale sale, List<SaleItem> items) {
+    final bytes = <int>[];
 
-    final raw = "RAW".toNativeUtf16();
+    void add(String text) {
+      bytes.addAll(text.codeUnits);
+    }
 
-    doc.ref.pDocName = docName;
+    bytes.addAll([0x1B, 0x40]);
 
-    doc.ref.pDatatype = raw;
+    // Center
 
-    StartDocPrinter(handle.value, 1, doc.cast());
+    bytes.addAll([0x1B, 0x61, 0x01]);
 
-    StartPagePrinter(handle.value);
+    add("LINGO STORE\n");
 
-    final buffer = calloc<Uint8>(bytes.length);
+    add("POS SYSTEM\n");
 
-    buffer.asTypedList(bytes.length).setAll(0, bytes);
+    add("==============================\n");
 
-    final written = calloc<DWORD>();
+    // Left
 
-    WritePrinter(handle.value, buffer, bytes.length, written);
+    bytes.addAll([0x1B, 0x61, 0x00]);
 
-    EndPagePrinter(handle.value);
+    add("Invoice : ${sale.invoiceNumber}\n");
 
-    EndDocPrinter(handle.value);
+    add("Date    : ${sale.saleDate}\n");
 
-    ClosePrinter(handle.value);
+    add("------------------------------\n");
 
-    calloc.free(buffer);
-    calloc.free(written);
-    calloc.free(doc);
-    calloc.free(handle);
-    calloc.free(docName);
-    calloc.free(raw);
+    add("ITEM        QTY    PRICE TOTAL\n");
+
+    add("------------------------------\n");
+
+    for (final item in items) {
+      add("${item.itemName}\n");
+
+      add("${item.quantity} x ${item.total}\n");
+    }
+
+    add("------------------------------\n");
+
+    bytes.addAll([0x1B, 0x61, 0x01]);
+
+    add("TOTAL\n");
+
+    add("${sale.total} EGP\n");
+
+    add("\n\n\n");
+
+    bytes.addAll([0x1D, 0x56, 0x00]);
+
+    return bytes;
   }
 }

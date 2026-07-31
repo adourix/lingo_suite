@@ -105,13 +105,13 @@ final debtSummaryProvider = FutureProvider<Map<String, double>>((ref) async {
 // Dashboard Providers
 // ===============================
 
-final totalOrdersProvider = FutureProvider<int>((ref) async {
+final totalOrdersProvider = FutureProvider.autoDispose<int>((ref) async {
   final repo = ref.watch(analyticsRepositoryProvider);
 
   return repo.getTotalOrders();
 });
 
-final totalCustomersProvider = FutureProvider<int>((ref) async {
+final totalCustomersProvider = FutureProvider.autoDispose<int>((ref) async {
   final repo = ref.watch(analyticsRepositoryProvider);
 
   return repo.getTotalCustomers();
@@ -124,8 +124,64 @@ final recentSalesProvider = FutureProvider<List<Sale>>((ref) async {
 
   return sales.take(5).toList();
 });
-final totalProductsProvider = FutureProvider<int>((ref) async {
+final totalProductsProvider = FutureProvider.autoDispose<int>((ref) async {
   final repo = ref.watch(analyticsRepositoryProvider);
 
   return repo.getTotalProducts();
 });
+final dashboardMonthProvider = Provider<AnalyticsPeriod>((ref) {
+  final now = DateTime.now();
+
+  return AnalyticsPeriod(
+    from: DateTime(now.year, now.month, 1),
+
+    to: DateTime(now.year, now.month + 1, 0, 23, 59, 59),
+  );
+});
+
+final dashboardSalesProvider = FutureProvider<double>((ref) async {
+  final repo = ref.watch(analyticsRepositoryProvider);
+
+  final period = ref.watch(dashboardMonthProvider);
+
+  return repo.getTotalSales(from: period.from, to: period.to);
+});
+
+final dashboardOrdersProvider = FutureProvider<int>((ref) async {
+  final repo = ref.watch(analyticsRepositoryProvider);
+
+  final period = ref.watch(dashboardMonthProvider);
+
+  return repo.getOrdersByDate(from: period.from, to: period.to);
+});
+final periodInvoicesProvider = FutureProvider<List<Sale>>((ref) async {
+  final repo = ref.watch(salesRepositoryProvider);
+
+  final period = ref.watch(analyticsPeriodProvider);
+
+  return repo.getSalesByDate(from: period.from, to: period.to);
+});
+final profitChartProvider = FutureProvider<List<Map<String, dynamic>>>((
+  ref,
+) async {
+  final repo = ref.watch(analyticsRepositoryProvider);
+
+  final period = ref.watch(analyticsPeriodProvider);
+
+  return repo.getProfitByDay(from: period.from, to: period.to);
+});
+final dashboardChartPeriodProvider = Provider<AnalyticsPeriod>((ref) {
+  final now = DateTime.now();
+
+  return AnalyticsPeriod(from: now.subtract(const Duration(days: 6)), to: now);
+});
+
+final dashboardProfitChartProvider = FutureProvider<List<Map<String, dynamic>>>(
+  (ref) async {
+    final repo = ref.watch(analyticsRepositoryProvider);
+
+    final period = ref.watch(dashboardChartPeriodProvider);
+
+    return repo.getProfitByDay(from: period.from, to: period.to);
+  },
+);

@@ -17,6 +17,7 @@ import 'package:drift/drift.dart' hide Column;
 import '../../models/checkout_request.dart';
 import '../../models/payment_data.dart';
 import 'dart:io';
+import '../../../../core/providers/products_provider.dart';
 
 import '../../../../core/printer/thermal_printer_mac_service.dart';
 import 'customer_search_dialog.dart';
@@ -137,6 +138,7 @@ class CartPanel extends ConsumerWidget {
                                 ),
                               );
 
+                              ref.invalidate(totalCustomersProvider);
                               final newCustomer = await repo.getById(id);
 
                               if (newCustomer != null) {
@@ -305,9 +307,16 @@ class CartPanel extends ConsumerWidget {
                           );
 
                           final saleId = await repo.checkout(request);
-
+                          ref.invalidate(dashboardSalesProvider);
+                          ref.invalidate(dashboardOrdersProvider);
+                          ref.invalidate(totalCostProvider);
                           ref.invalidate(recentSalesProvider);
-
+                          ref.invalidate(totalOrdersProvider);
+                          ref.invalidate(totalSalesProvider);
+                          ref.invalidate(salesChartProvider);
+                          ref.invalidate(profitProvider);
+                          ref.invalidate(financialSummaryProvider);
+                          ref.invalidate(productsSearchProvider);
                           final sale = await repo.getSaleById(saleId);
 
                           final items = await repo.getSaleItems(saleId);

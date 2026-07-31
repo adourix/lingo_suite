@@ -273,4 +273,35 @@ class SalesRepository {
           ..orderBy([(tbl) => OrderingTerm.desc(tbl.createdAt)]))
         .get();
   }
+
+  Future<List<Sale>> getSalesByDate({
+    required DateTime from,
+    required DateTime to,
+  }) {
+    return (db.select(db.sales)
+          ..where(
+            (tbl) =>
+                tbl.saleDate.isBiggerOrEqualValue(from) &
+                tbl.saleDate.isSmallerOrEqualValue(to) &
+                tbl.isReturned.equals(false),
+          )
+          ..orderBy([(tbl) => OrderingTerm.desc(tbl.saleDate)]))
+        .get();
+  }
+
+  // Invoice Details
+
+  Future<List<SaleItem>> getInvoiceItems(int saleId) {
+    return (db.select(
+      db.saleItems,
+    )..where((tbl) => tbl.saleId.equals(saleId))).get();
+  }
+
+  // Invoice Payments
+
+  Future<List<Payment>> getInvoicePayments(int saleId) {
+    return (db.select(
+      db.payments,
+    )..where((tbl) => tbl.saleId.equals(saleId))).get();
+  }
 }

@@ -1,22 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'invoice_details_page.dart';
+
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/customer_sales_provider.dart';
-import 'widgets/pay_debt_dialog.dart';
 import '../../../core/providers/customers_repository_provider.dart';
 
-class CustomerDetailsPage extends ConsumerWidget {
+import 'widgets/pay_debt_dialog.dart';
+
+class CustomerDetailsPage extends ConsumerStatefulWidget {
   final Customer customer;
 
   const CustomerDetailsPage({super.key, required this.customer});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final sales = ref.watch(customerSalesProvider(customer.id));
+  ConsumerState<CustomerDetailsPage> createState() =>
+      _CustomerDetailsPageState();
+}
+
+class _CustomerDetailsPageState extends ConsumerState<CustomerDetailsPage> {
+  bool paying = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final sales = ref.watch(customerSalesProvider(widget.customer.id));
 
     return Scaffold(
-      appBar: AppBar(title: Text(customer.name)),
+      appBar: AppBar(title: Text(widget.customer.name)),
 
       body: Padding(
         padding: const EdgeInsets.all(24),
@@ -34,25 +45,27 @@ class CustomerDetailsPage extends ConsumerWidget {
 
                   children: [
                     Text(
-                      customer.name,
+                      widget.customer.name,
 
                       style: const TextStyle(
                         fontSize: 22,
+
                         fontWeight: FontWeight.bold,
                       ),
                     ),
 
                     const SizedBox(height: 8),
 
-                    Text("Phone: ${customer.phone ?? '-'}"),
+                    Text("Phone: ${widget.customer.phone ?? '-'}"),
 
                     const SizedBox(height: 8),
 
                     Text(
-                      "Balance: ${customer.balance} EGP",
+                      "Balance: ${widget.customer.balance} EGP",
 
                       style: const TextStyle(
                         fontSize: 18,
+
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -60,55 +73,101 @@ class CustomerDetailsPage extends ConsumerWidget {
                 ),
               ),
             ),
+
             const SizedBox(height: 16),
 
             SizedBox(
               width: double.infinity,
 
               child: ElevatedButton.icon(
-                onPressed: () async {
-                  final amount = await showDialog<double>(
-                    context: context,
+                onPressed: paying
+                    ? null
+                    : () async {
+                        final amount = await showDialog<double>(
+                          context: context,
 
-                    builder: (_) => const PayDebtDialog(),
-                  );
+                          builder: (_) => const PayDebtDialog(),
+                        );
 
-                  if (amount == null) return;
+                        if (amount == null) return;
 
-                  final repo = ref.read(customersRepositoryProvider);
+                        final newBalance = widget.customer.balance - amount;
 
-                  final newBalance = customer.balance - amount;
+                        if (newBalance < 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Payment is greater than debt"),
+                            ),
+                          );
 
-                  if (newBalance < 0) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Payment is greater than debt"),
-                      ),
-                    );
+                          return;
+                        }
 
-                    return;
-                  }
+                        setState(() {
+                          paying = true;
+                        });
 
-                  await repo.update(
-                    customer.copyWith(
-                      balance: newBalance,
+                        try {
+                          final repo = ref.read(customersRepositoryProvider);
 
-                      updatedAt: DateTime.now(),
-                    ),
-                  );
+                          await repo
+                              .update(
+                                widget.customer.copyWith(
+                                  balance: newBalance,
 
-                  ref.invalidate(customerSalesProvider(customer.id));
+                                  updatedAt: DateTime.now(),
+                                ),
+                              )
+                              .timeout(
+                                const Duration(seconds: 5),
 
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                  }
-                },
+                                onTimeout: () {
+                                  throw Exception("Database timeout");
+                                },
+                              );
 
-                icon: const Icon(Icons.payments),
+                          ref.invalidate(
+                            customerSalesProvider(widget.customer.id),
+                          );
 
-                label: const Text("Pay Debt"),
+                          if (context.mounted) {
+                            Navigator.pop(context);
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Debt paid successfully"),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(e.toString())),
+                            );
+                          }
+                        } finally {
+                          if (mounted) {
+                            setState(() {
+                              paying = false;
+                            });
+                          }
+                        }
+                      },
+
+                icon: paying
+                    ? const SizedBox(
+                        width: 18,
+
+                        height: 18,
+
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.payments),
+
+                label: Text(paying ? "Processing..." : "Pay Debt"),
               ),
             ),
+
             const SizedBox(height: 24),
 
             const Text(
@@ -137,12 +196,14 @@ class CustomerDetailsPage extends ConsumerWidget {
                           onTap: () {
                             Navigator.push(
                               context,
+
                               MaterialPageRoute(
                                 builder: (_) =>
                                     InvoiceDetailsPage(invoice: invoice),
                               ),
                             );
                           },
+
                           title: Text(invoice.invoiceNumber),
 
                           subtitle: Text(

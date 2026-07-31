@@ -7,18 +7,18 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../core/providers/analytics_provider.dart';
 
 import 'widgets/recent_orders.dart';
-import 'widgets/sales_chart.dart';
 import 'widgets/stat_card.dart';
 import 'widgets/top_products.dart';
+import 'widgets/profit_chart.dart';
 
 class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sales = ref.watch(totalSalesProvider);
+    final sales = ref.watch(dashboardSalesProvider);
 
-    final orders = ref.watch(totalOrdersProvider);
+    final orders = ref.watch(dashboardOrdersProvider);
 
     final customers = ref.watch(totalCustomersProvider);
 
@@ -31,15 +31,49 @@ class DashboardPage extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
 
         children: [
-          Text("Dashboard", style: AppTextStyles.h1),
+          // HEADER
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
-          const SizedBox(height: 8),
+            crossAxisAlignment: CrossAxisAlignment.start,
 
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+
+                children: [
+                  Text("Dashboard", style: AppTextStyles.h1),
+
+                  const SizedBox(height: 8),
+
+                  Text(
+                    "Overview of your store performance",
+                    style: AppTextStyles.body,
+                  ),
+                ],
+              ),
+
+              ElevatedButton.icon(
+                onPressed: () {
+                  // TODO:
+                  // Navigate to new sale
+                },
+
+                icon: const Icon(Icons.add),
+
+                label: const Text("New Sale"),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 32),
+
+          // STAT CARDS
           LayoutBuilder(
             builder: (context, constraints) {
               int count = 4;
 
-              if (constraints.maxWidth < 1000) {
+              if (constraints.maxWidth < 1100) {
                 count = 2;
               }
 
@@ -50,9 +84,9 @@ class DashboardPage extends ConsumerWidget {
               return GridView.count(
                 crossAxisCount: count,
 
-                crossAxisSpacing: 24,
+                crossAxisSpacing: 20,
 
-                mainAxisSpacing: 24,
+                mainAxisSpacing: 20,
 
                 childAspectRatio: 1.5,
 
@@ -68,7 +102,7 @@ class DashboardPage extends ConsumerWidget {
 
                     change: "Current Period",
 
-                    icon: Icons.attach_money,
+                    icon: Icons.payments_outlined,
                   ),
 
                   StatCard(
@@ -76,7 +110,7 @@ class DashboardPage extends ConsumerWidget {
 
                     value: _intValue(orders),
 
-                    change: "Total",
+                    change: "Total Orders",
 
                     icon: Icons.shopping_cart_outlined,
                   ),
@@ -88,7 +122,7 @@ class DashboardPage extends ConsumerWidget {
 
                     change: "Registered",
 
-                    icon: Icons.people_outline,
+                    icon: Icons.groups_outlined,
                   ),
 
                   StatCard(
@@ -96,7 +130,7 @@ class DashboardPage extends ConsumerWidget {
 
                     value: _intValue(products),
 
-                    change: "Active",
+                    change: "Active Items",
 
                     icon: Icons.inventory_2_outlined,
                   ),
@@ -107,14 +141,15 @@ class DashboardPage extends ConsumerWidget {
 
           const SizedBox(height: 32),
 
+          // CHART + ORDERS
           LayoutBuilder(
             builder: (context, constraints) {
-              if (constraints.maxWidth > 900) {
+              if (constraints.maxWidth > 950) {
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
 
                   children: [
-                    const Expanded(flex: 2, child: SalesChart()),
+                    const Expanded(flex: 2, child: ProfitChart()),
 
                     const SizedBox(width: 24),
 
@@ -124,13 +159,14 @@ class DashboardPage extends ConsumerWidget {
               }
 
               return const Column(
-                children: [SalesChart(), SizedBox(height: 24), RecentOrders()],
+                children: [ProfitChart(), SizedBox(height: 24), RecentOrders()],
               );
             },
           ),
 
           const SizedBox(height: 32),
 
+          // PRODUCTS
           const TopProducts(),
         ],
       ),
@@ -143,7 +179,7 @@ class DashboardPage extends ConsumerWidget {
 
       loading: () => "...",
 
-      error: (_, _) => "0",
+      error: (_, __) => "0",
     );
   }
 
@@ -153,7 +189,7 @@ class DashboardPage extends ConsumerWidget {
 
       loading: () => "...",
 
-      error: (_, _) => "0",
+      error: (_, __) => "0",
     );
   }
 }
