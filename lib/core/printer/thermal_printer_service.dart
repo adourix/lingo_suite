@@ -147,49 +147,181 @@ class ThermalPrinterService {
       bytes.addAll(text.codeUnits);
     }
 
-    bytes.addAll([0x1B, 0x40]);
+    void command(List<int> cmd) {
+      bytes.addAll(cmd);
+    }
 
-    // Center
+    void center() {
+      command([0x1B, 0x61, 0x01]);
+    }
 
-    bytes.addAll([0x1B, 0x61, 0x01]);
+    void left() {
+      command([0x1B, 0x61, 0x00]);
+    }
+
+    void bold(bool value) {
+      command([0x1B, 0x45, value ? 1 : 0]);
+    }
+
+    void size(int value) {
+      command([0x1D, 0x21, value]);
+    }
+
+    void normalSize() {
+      size(0x00);
+    }
+
+    void fullLine() {
+      add("==========================================\n");
+    }
+
+    void thinLine() {
+      add("------------------------------------------\n");
+    }
+
+    void dotsLine() {
+      add("..........................................\n");
+    }
+
+    // INIT
+
+    command([0x1B, 0x40]);
+
+    // ======================
+    // STORE HEADER
+    // ======================
+
+    center();
+
+    bold(true);
+
+    size(0x11);
 
     add("LINGO STORE\n");
 
-    add("POS SYSTEM\n");
+    normalSize();
 
-    add("==============================\n");
+    bold(false);
 
-    // Left
+    add("Sales & Inventory Management\n");
 
-    bytes.addAll([0x1B, 0x61, 0x00]);
+    add("Tel: 01552854444\n");
+
+    fullLine();
+
+    // ======================
+    // INVOICE INFO
+    // ======================
+
+    left();
+
+    bold(true);
+
+    bold(false);
 
     add("Invoice : ${sale.invoiceNumber}\n");
 
     add("Date    : ${sale.saleDate}\n");
 
-    add("------------------------------\n");
+    add("Cashier : Admin\n");
 
-    add("ITEM        QTY    PRICE TOTAL\n");
+    thinLine();
 
-    add("------------------------------\n");
+    // ======================
+    // ITEMS
+    // ======================
+
+    bold(true);
+
+    add("ITEM             QTY   PRICE   TOTAL\n");
+
+    bold(false);
+
+    thinLine();
 
     for (final item in items) {
-      add("${item.itemName}\n");
+      String name = item.itemName;
 
-      add("${item.quantity} x ${item.total}\n");
+      if (name.length > 13) {
+        name = name.substring(0, 13);
+      }
+
+      final price = item.total / item.quantity;
+
+      add(
+        name.padRight(14) +
+            item.quantity.toString().padLeft(4) +
+            price.toStringAsFixed(0).padLeft(9) +
+            item.total.toStringAsFixed(0).padLeft(9) +
+            "\n",
+      );
     }
 
-    add("------------------------------\n");
+    dotsLine();
 
-    bytes.addAll([0x1B, 0x61, 0x01]);
+    // ======================
+    // TOTAL
+    // ======================
+
+    center();
+
+    bold(true);
+
+    size(0x10);
 
     add("TOTAL\n");
 
-    add("${sale.total} EGP\n");
+    add("${sale.total.toStringAsFixed(2)} EGP\n");
 
-    add("\n\n\n");
+    normalSize();
 
-    bytes.addAll([0x1D, 0x56, 0x00]);
+    bold(false);
+
+    fullLine();
+
+    // ======================
+    // PAYMENT
+    // ======================
+
+    left();
+
+    bold(true);
+
+    add("PAYMENT\n");
+
+    bold(false);
+
+    thinLine();
+
+    add("Method : Cash\n");
+
+    add("Paid   : ${sale.paid.toStringAsFixed(2)} EGP\n");
+
+    add("Remain : ${sale.remaining.toStringAsFixed(2)} EGP\n");
+
+    thinLine();
+
+    // ======================
+    // FOOTER
+    // ======================
+
+    center();
+
+    bold(true);
+
+    add("THANK YOU!\n");
+
+    bold(false);
+
+    add("Visit Again\n");
+
+    add("LINGO STORE\n");
+
+    add("\n\n\n\n");
+
+    // CUT PAPER
+
+    command([0x1D, 0x56, 0x00]);
 
     return bytes;
   }
