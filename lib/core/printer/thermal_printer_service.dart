@@ -19,7 +19,7 @@ class ThermalPrinterService {
     if (!Platform.isWindows) {
       throw Exception("Windows only");
     }
-
+    await _checkPrinter();
     final bytes = _buildReceipt(sale, items);
 
     final port = ReceivePort();
@@ -117,25 +117,26 @@ class ThermalPrinterService {
     final result = await Process.run("powershell", [
       "-Command",
       """
-        \$p = Get-Printer -Name '$printerName' -ErrorAction SilentlyContinue;
-        if(\$null -eq \$p){
-          exit 1
-        }
+      \$p = Get-Printer -Name '$printerName' -ErrorAction SilentlyContinue;
 
-        if(\$p.PrinterStatus -eq 'Offline'){
-          exit 2
-        }
+      if(\$null -eq \$p){
+        exit 1
+      }
 
-        exit 0
-        """,
-    ]).timeout(const Duration(seconds: 3));
+      if(\$p.PrinterStatus -eq 'Offline'){
+        exit 2
+      }
+
+      exit 0
+      """,
+    ]);
 
     if (result.exitCode == 1) {
       throw Exception("Printer not found");
     }
 
     if (result.exitCode == 2) {
-      throw Exception("Printer is offline");
+      throw Exception("Printer offline");
     }
   }
 

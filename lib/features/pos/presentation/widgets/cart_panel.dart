@@ -322,21 +322,35 @@ class CartPanel extends ConsumerWidget {
                           final items = await repo.getSaleItems(saleId);
 
                           if (sale != null) {
-                            try {
-                              if (Platform.isWindows) {
-                                await ThermalPrinterService.printInvoice(
-                                  sale: sale,
-                                  items: items,
-                                );
-                              } else if (Platform.isMacOS) {
-                                await ThermalPrinterMacService.printInvoice(
-                                  sale: sale,
-                                  items: items,
-                                );
+                            Future(() async {
+                              debugPrint("START PRINT");
+
+                              try {
+                                if (Platform.isWindows) {
+                                  await ThermalPrinterService.printInvoice(
+                                    sale: sale,
+                                    items: items,
+                                  );
+                                } else if (Platform.isMacOS) {
+                                  await ThermalPrinterMacService.printInvoice(
+                                    sale: sale,
+                                    items: items,
+                                  );
+                                }
+
+                                debugPrint("PRINT DONE");
+                              } catch (e, s) {
+                                debugPrint("Printer Error: $e");
+                                debugPrint(s.toString());
                               }
-                            } catch (e) {
-                              debugPrint("Printer Error: $e");
-                            }
+                            });
+                          }
+                          ref.read(cartProvider.notifier).clear();
+
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Sale completed")),
+                            );
                           }
 
                           ref.read(cartProvider.notifier).clear();

@@ -6,18 +6,16 @@ import 'package:win32/win32.dart';
 void printerWorker(List<dynamic> args) {
   final sendPort = args[0];
 
-  final printerName = args[1];
+  final printerName = args[1] as String;
 
   final bytes = args[2] as List<int>;
 
+  final printerPtr = printerName.toNativeUtf16();
+
+  final handle = calloc<HANDLE>();
+
   try {
-    final printerPtr = printerName.toNativeUtf16();
-
-    final handle = calloc<HANDLE>();
-
     final opened = OpenPrinter(printerPtr, handle, nullptr);
-
-    calloc.free(printerPtr);
 
     if (opened == 0) {
       sendPort.send("Cannot open printer");
@@ -43,7 +41,15 @@ void printerWorker(List<dynamic> args) {
       return;
     }
 
-    StartPagePrinter(handle.value);
+    final page = StartPagePrinter(handle.value);
+
+    if (page == 0) {
+      sendPort.send("Start page failed");
+
+      EndDocPrinter(handle.value);
+
+      return;
+    }
 
     final buffer = calloc<Uint8>(bytes.length);
 
@@ -60,14 +66,21 @@ void printerWorker(List<dynamic> args) {
     ClosePrinter(handle.value);
 
     calloc.free(buffer);
+
     calloc.free(written);
+
     calloc.free(doc);
-    calloc.free(handle);
+
     calloc.free(docName);
+
     calloc.free(raw);
 
+    calloc.free(handle);
+
+    calloc.free(printerPtr);
+
     if (result == 0) {
-      sendPort.send("Print failed");
+      sendPort.send("WritePrinter failed");
     } else {
       sendPort.send("OK");
     }
