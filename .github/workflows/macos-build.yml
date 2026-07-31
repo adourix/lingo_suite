@@ -1,34 +1,59 @@
 name: Build macOS App
 
 on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
-  build:
+  build-macos:
     runs-on: macos-latest
 
     steps:
-
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-
-      - name: Setup Flutter
+      - name: Install Flutter 3.41.6
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: stable
+          flutter-version: '3.41.6'
+          channel: 'stable'
+          architecture: arm64
+          cache: true
 
+      - name: Flutter doctor
+        run: flutter doctor -v
 
-      - name: Install packages
+      - name: Enable macOS desktop support
+        run: flutter config --enable-macos-desktop
+
+      - name: Get Flutter dependencies
         run: flutter pub get
 
+      - name: Install CocoaPods
+        run: |
+          sudo gem install cocoapods
+          pod --version
 
-      - name: Build macOS
-        run: flutter build macos
+      - name: Install/update CocoaPods dependencies
+        working-directory: macos
+        run: pod install --repo-update
 
+      - name: Build macOS app
+        run: flutter build macos --release
 
-      - name: Upload app
+      - name: Locate build output
+        id: locate_app
+        run: |
+          APP_PATH=$(find build/macos/Build/Products/Release -maxdepth 1 -name "*.app" | head -n 1)
+          echo "app_path=$APP_PATH" >> "$GITHUB_OUTPUT"
+          echo "Found app at: $APP_PATH"
+
+      - name: Upload macOS .app artifact
         uses: actions/upload-artifact@v4
         with:
           name: macos-app
-          path: build/macos/Build/Products/Release/
+          path: ${{ steps.locate_app.outputs.app_path }}
+          if-no-files-found: error
