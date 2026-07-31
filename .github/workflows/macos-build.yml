@@ -51,6 +51,10 @@ jobs:
           echo "app_path=$APP_PATH" >> "$GITHUB_OUTPUT"
           echo "Found app at: $APP_PATH"
 
+      # NOTE: We do NOT zip the .app ourselves here. actions/upload-artifact
+      # already zips whatever path you give it for the download, so zipping
+      # it ourselves first would create a double-zip (a .zip inside the
+      # downloaded .zip), which is confusing and can lead to broken extracts.
       - name: Upload macOS .app artifact
         uses: actions/upload-artifact@v4
         with:
