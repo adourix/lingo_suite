@@ -51,13 +51,35 @@ jobs:
           echo "app_path=$APP_PATH" >> "$GITHUB_OUTPUT"
           echo "Found app at: $APP_PATH"
 
-      # NOTE: We do NOT zip the .app ourselves here. actions/upload-artifact
-      # already zips whatever path you give it for the download, so zipping
-      # it ourselves first would create a double-zip (a .zip inside the
-      # downloaded .zip), which is confusing and can lead to broken extracts.
-      - name: Upload macOS .app artifact
+      - name: Ad-hoc codesign the app
+        run: |
+          codesign --force --deep --sign - "${{ steps.locate_app.outputs.app_path }}"
+          codesign --verify --deep --strict --verbose=2 "${{ steps.locate_app.outputs.app_path }}"
+
+      # IMPORTANT: actions/upload-artifact's built-in zipping does NOT
+      # reliably preserve macOS symlinks (Versions/Current -> A) or
+      # executable permission bits inside .app bundles/frameworks, which
+      # corrupts the code signature on download ("bundle format is
+      # ambiguous" / "code signature is not valid"). We zip it ourselves
+      # with `ditto`, which is Apple's own tool and preserves all of that
+      # correctly, then upload the single .zip file (not the raw .app
+      # folder) so upload-artifact just stores it as-is without re-zipping
+      # its internals.
+      - name: Package app with ditto (preserves symlinks & permissions)
+        id: package_app
+        run: |
+          APP_PATH="${{ steps.locate_app.outputs.app_path }}"
+          APP_DIR=$(dirname "$APP_PATH")
+          APP_NAME=$(basename "$APP_PATH")
+          ZIP_PATH="$APP_DIR/${APP_NAME%.app}.zip"
+          cd "$APP_DIR"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_NAME" "$(basename "$ZIP_PATH")"
+          echo "zip_path=$ZIP_PATH" >> "$GITHUB_OUTPUT"
+          echo "Packaged: $ZIP_PATH"
+
+      - name: Upload macOS app artifact
         uses: actions/upload-artifact@v4
         with:
           name: macos-app
-          path: ${{ steps.locate_app.outputs.app_path }}
+          path: ${{ steps.package_app.outputs.zip_path }}
           if-no-files-found: error
