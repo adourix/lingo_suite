@@ -109,13 +109,9 @@ class ThermalPrinterMacService {
     normal();
 
 
-    add(
-      "POS & INVENTORY SYSTEM\n",
-    );
-
 
     add(
-      "Tel: 01000000000\n",
+      "Tel: 01552854444\n",
     );
 
 
