@@ -228,33 +228,74 @@ class ThermalPrinterMacService {
 
 
 
-    // TOTAL
+   // SUMMARY + TOTAL
+
+align(0);
 
 
-    align(1);
+bold(true);
+
+add(
+  "SUMMARY\n",
+);
 
 
-    bold(true);
-
-    size(0x10);
+bold(false);
 
 
-    add(
-      "TOTAL\n",
-    );
+add(
+  dash(),
+);
 
 
-    add(
-      "${sale.total.toStringAsFixed(2)} EGP\n",
-    );
+add(
+  "Subtotal : ${sale.subtotal.toStringAsFixed(2)} EGP\n",
+);
 
 
-    normal();
+add(
+  "Discount : ${sale.discount.toStringAsFixed(2)} EGP\n",
+);
 
 
-    add(
-      line(),
-    );
+add(
+  "Tax      : ${sale.tax.toStringAsFixed(2)} EGP\n",
+);
+
+
+add(
+  dash(),
+);
+
+
+
+align(1);
+
+
+bold(true);
+
+size(0x10);
+
+
+
+add(
+  "TOTAL\n",
+);
+
+
+add(
+  "${sale.total.toStringAsFixed(2)} EGP\n",
+);
+
+
+
+normal();
+
+
+
+add(
+  line(),
+);
 
 
 
