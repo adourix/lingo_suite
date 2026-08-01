@@ -485,315 +485,381 @@ class _CartPanelState extends ConsumerState<CartPanel> {
 
 
 
+const Divider(),
 
 
-            const Divider(),
+// ITEMS COUNT
+
+_summaryRow(
+  "Items",
+  notifier.itemsCount.toDouble(),
+  isCount: true,
+),
+
+
+// SUBTOTAL
+
+_summaryRow(
+  "Subtotal",
+  notifier.subtotal,
+),
 
 
 
+// DISCOUNT INPUT
 
-            _summaryRow(
-              "Items",
-              notifier.itemsCount.toDouble(),
-              isCount:true,
+TextField(
+
+  keyboardType: TextInputType.number,
+
+  decoration: const InputDecoration(
+
+    labelText: "Discount (EGP)",
+
+    border: OutlineInputBorder(),
+
+  ),
+
+
+  onChanged: (value) {
+
+    setState(() {
+
+      discount =
+          double.tryParse(value) ?? 0;
+
+    });
+
+  },
+
+),
+
+
+
+const SizedBox(height: 12),
+
+
+
+// DISCOUNT DISPLAY
+
+_summaryRow(
+  "Discount",
+  discount,
+),
+
+
+
+// TOTAL
+
+_summaryRow(
+  "Total",
+  notifier.subtotal - discount,
+  bold: true,
+),
+
+
+
+const SizedBox(height: 12),
+
+
+
+// ADD SERVICE BUTTON
+
+SizedBox(
+
+  width: double.infinity,
+
+  height: 45,
+
+
+  child: OutlinedButton.icon(
+
+    onPressed: () async {
+
+
+      final result =
+          await showDialog<(String, double, int)>(
+
+            context: context,
+
+            builder: (_) =>
+                const AddServiceDialog(),
+
+          );
+
+
+
+      if(result == null) return;
+
+
+
+      ref
+          .read(cartProvider.notifier)
+          .addService(
+
+            name: result.$1,
+
+            price: result.$2,
+
+            quantity: result.$3,
+
+          );
+
+
+    },
+
+
+    icon: const Icon(
+      Icons.design_services,
+    ),
+
+
+    label: const Text(
+      "Add Service",
+    ),
+
+
+  ),
+
+),
+
+
+
+const SizedBox(height: 12),
+
+
+
+// PAY BUTTON
+
+SizedBox(
+
+  width: double.infinity,
+
+  height: 50,
+
+
+  child: FilledButton.icon(
+
+    onPressed:
+
+    cart.isEmpty
+
+    ? null
+
+
+    : () async {
+
+
+      final payment =
+          await showDialog<PaymentData>(
+
+            context: context,
+
+
+            builder: (_) =>
+                PaymentDialog(
+
+                  total:
+                    notifier.subtotal - discount,
+
+                ),
+
+          );
+
+
+
+      if(payment == null) return;
+
+
+
+      try {
+
+
+        final repo =
+            ref.read(
+              salesRepositoryProvider,
+            );
+
+
+
+        final request =
+            CheckoutRequest(
+
+              items: cart,
+
+              userId: 1,
+
+              customerId:
+                  selectedCustomer?.id,
+
+
+              discount:
+                  discount,
+
+
+              tax:
+                  0,
+
+
+              payments: [
+                payment,
+              ],
+
+            );
+
+
+
+        final saleId =
+            await repo.checkout(
+              request,
+            );
+
+
+
+        ref.invalidate(
+          totalSalesProvider,
+        );
+
+        ref.invalidate(
+          profitProvider,
+        );
+
+        ref.invalidate(
+          financialSummaryProvider,
+        );
+
+        ref.invalidate(
+          productsSearchProvider,
+        );
+
+
+
+        final sale =
+            await repo.getSaleById(
+              saleId,
+            );
+
+
+        final items =
+            await repo.getSaleItems(
+              saleId,
+            );
+
+
+
+        if(sale != null){
+
+          Future(() async {
+
+            try {
+
+              if(Platform.isWindows){
+
+                await ThermalPrinterService.printInvoice(
+                  sale: sale,
+                  items: items,
+                );
+
+              }
+
+
+              else if(Platform.isMacOS){
+
+                await ThermalPrinterMacService.printInvoice(
+                  sale: sale,
+                  items: items,
+                );
+
+              }
+
+
+            }
+
+            catch(e){
+
+              debugPrint(
+                "Printer Error: $e",
+              );
+
+            }
+
+
+          });
+
+        }
+
+
+
+        ref
+            .read(cartProvider.notifier)
+            .clear();
+
+
+
+        if(context.mounted){
+
+          ScaffoldMessenger.of(context)
+          .showSnackBar(
+
+            const SnackBar(
+
+              content:
+                Text(
+                  "Sale completed",
+                ),
+
             ),
 
+          );
+
+        }
 
 
-            _summaryRow(
-              "Subtotal",
-              notifier.subtotal,
+      }
+
+
+      catch(e){
+
+
+        if(context.mounted){
+
+          ScaffoldMessenger.of(context)
+          .showSnackBar(
+
+            SnackBar(
+              content:
+                Text(
+                  "Error: $e",
+                ),
             ),
 
+          );
 
+        }
 
-            TextField(
 
-              keyboardType:
-                  TextInputType.number,
+      }
 
 
-              decoration:
-                  const InputDecoration(
 
-                    labelText:
-                        "Discount (EGP)",
+    },
 
-                    border:
-                        OutlineInputBorder(),
 
-                  ),
+    icon:
+      const Icon(
+        Icons.payments_outlined,
+      ),
 
 
+    label:
+      const Text(
+        "Pay",
+      ),
 
-              onChanged:(value){
 
+  ),
 
-                setState(() {
-
-                  discount =
-                      double.tryParse(value) ?? 0;
-
-                });
-
-
-              },
-
-            ),
-
-
-
-
-            const SizedBox(height:10),
-
-
-
-            _summaryRow(
-              "Discount",
-              discount,
-            ),
-
-
-
-            _summaryRow(
-              "Total",
-              total,
-              bold:true,
-            ),
-
-
-
-
-            const SizedBox(height:15),
-
-
-
-
-            SizedBox(
-
-              width:double.infinity,
-
-              height:50,
-
-
-              child: FilledButton.icon(
-
-                onPressed:
-
-                cart.isEmpty
-
-                ? null
-
-
-                :
-
-                () async {
-
-
-                  final payment =
-                      await showDialog<PaymentData>(
-
-                        context:context,
-
-                        builder:(_)=>
-                            PaymentDialog(
-                              total:total,
-                            ),
-
-                      );
-
-
-
-                  if(payment == null)
-                    return;
-
-
-
-                  try{
-
-
-                    final repo =
-                        ref.read(
-                          salesRepositoryProvider,
-                        );
-
-
-
-                    final request =
-                        CheckoutRequest(
-
-                          items:cart,
-
-
-                          userId:1,
-
-
-                          customerId:
-                              selectedCustomer?.id,
-
-
-                          discount:
-                              discount,
-
-
-                          tax:0,
-
-
-                          payments:[
-                            payment,
-                          ],
-
-                        );
-
-
-
-                    final saleId =
-                        await repo.checkout(
-                          request,
-                        );
-
-
-
-                    final sale =
-                        await repo.getSaleById(
-                          saleId,
-                        );
-
-
-
-                    final items =
-                        await repo.getSaleItems(
-                          saleId,
-                        );
-
-
-
-                    if(sale != null){
-
-                      unawaited(
-
-                        Future(() async{
-
-
-                          try{
-
-
-                            if(Platform.isWindows){
-
-                              await ThermalPrinterService.printInvoice(
-                                sale:sale,
-                                items:items,
-                              );
-
-
-                            }
-
-
-                            else if(Platform.isMacOS){
-
-
-                              await ThermalPrinterMacService.printInvoice(
-                                sale:sale,
-                                items:items,
-                              );
-
-
-                            }
-
-
-                          }
-
-                          catch(e){
-
-                            debugPrint(
-                              "Printer Error: $e",
-                            );
-
-                          }
-
-
-                        }),
-
-
-                      );
-
-
-                    }
-
-
-
-                    ref
-                    .read(cartProvider.notifier)
-                    .clear();
-
-
-
-                    if(context.mounted){
-
-                      ScaffoldMessenger.of(context)
-                      .showSnackBar(
-
-                        const SnackBar(
-
-                          content:
-                              Text(
-                                "Sale completed",
-                              ),
-
-                        ),
-
-                      );
-
-                    }
-
-
-
-                  }
-
-
-                  catch(e){
-
-
-                    if(context.mounted){
-
-                      ScaffoldMessenger.of(context)
-                      .showSnackBar(
-
-                        SnackBar(
-                          content:
-                              Text(
-                                "Error: $e",
-                              ),
-                        ),
-
-                      );
-
-                    }
-
-
-                  }
-
-
-
-                },
-
-
-                icon:
-                    const Icon(
-                      Icons.payments_outlined,
-                    ),
-
-
-                label:
-                    const Text(
-                      "Pay",
-                    ),
-
-
-              ),
-
-            ),
-
+),
 
           ],
 
