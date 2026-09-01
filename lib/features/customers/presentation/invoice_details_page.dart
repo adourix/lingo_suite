@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/repositories/sales_delete_extension.dart';
+import '../../../core/database/repositories/sales_return_extension.dart';
 import '../../../core/providers/invoices_provider.dart';
 import '../../../core/providers/sales_repository_provider.dart';
 import '../../../core/providers/sale_items_provider.dart';
@@ -13,9 +14,31 @@ class InvoiceDetailsPage extends ConsumerWidget {
   const InvoiceDetailsPage({super.key, required this.invoice});
 
   Future<void> _returnInvoice(BuildContext context, WidgetRef ref) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Return Invoice'),
+        content: const Text('This will return stock and reverse the invoice. Continue?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Return'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     final repo = ref.read(salesRepositoryProvider);
-    await repo.returnSale(invoice.id);
+    await repo.returnSaleCompletely(invoice.id);
     ref.invalidate(invoicesProvider);
+
+    if (context.mounted) Navigator.pop(context);
   }
 
   Future<void> _deleteInvoice(BuildContext context, WidgetRef ref) async {
