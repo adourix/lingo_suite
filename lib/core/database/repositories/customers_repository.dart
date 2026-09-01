@@ -36,7 +36,15 @@ class CustomersRepository {
     return db.update(db.customers).replace(customer);
   }
 
-  Future<int> delete(int id) {
+  Future<int> delete(int id) async {
+    final sales = await (db.select(db.sales)
+          ..where((s) => s.customerId.equals(id)))
+        .get();
+
+    if (sales.isNotEmpty) {
+      throw Exception('Cannot delete customer with sales history');
+    }
+
     return (db.delete(db.customers)..where((c) => c.id.equals(id))).go();
   }
 }
