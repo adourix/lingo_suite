@@ -67,7 +67,10 @@ extension SalesReturnExtension on SalesRepository {
       await (db.update(db.sales)
             ..where((tbl) => tbl.id.equals(saleId)))
           .write(
-        SalesCompanion(isReturned: const Value(true)),
+        const SalesCompanion(
+          isReturned: Value(true),
+          status: Value('returned'),
+        ),
       );
     });
   }
