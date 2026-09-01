@@ -16,27 +16,21 @@ class InvoiceDetailsPage extends ConsumerWidget {
   Future<void> _returnInvoice(BuildContext context, WidgetRef ref) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (_) => AlertDialog(
         title: const Text('Return Invoice'),
-        content: const Text('This will return stock and reverse the invoice. Continue?'),
+        content: const Text('Return stock and reverse this invoice?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Return'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Return')),
         ],
       ),
     );
 
     if (confirm != true) return;
 
-    final repo = ref.read(salesRepositoryProvider);
-    await repo.returnSaleCompletely(invoice.id);
+    await ref.read(salesRepositoryProvider).returnSaleCompletely(invoice.id);
     ref.invalidate(invoicesProvider);
+    ref.invalidate(saleItemsProvider(invoice.id));
 
     if (context.mounted) Navigator.pop(context);
   }
@@ -44,9 +38,9 @@ class InvoiceDetailsPage extends ConsumerWidget {
   Future<void> _deleteInvoice(BuildContext context, WidgetRef ref) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (_) => AlertDialog(
         title: const Text('Delete Invoice'),
-        content: const Text('This will remove the invoice completely and restore stock. Continue?'),
+        content: const Text('Delete this invoice?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
@@ -56,8 +50,7 @@ class InvoiceDetailsPage extends ConsumerWidget {
 
     if (confirm != true) return;
 
-    final repo = ref.read(salesRepositoryProvider);
-    await repo.deleteSaleCompletely(invoice.id);
+    await ref.read(salesRepositoryProvider).deleteSaleCompletely(invoice.id);
     ref.invalidate(invoicesProvider);
 
     if (context.mounted) Navigator.pop(context);
@@ -88,38 +81,14 @@ class InvoiceDetailsPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Invoice: ${invoice.invoiceNumber}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                    Text('Subtotal: ${invoice.subtotal} EGP'),
-                    Text('Discount: ${invoice.discount} EGP'),
-                    Text('Tax: ${invoice.tax} EGP'),
-                    Text('Total: ${invoice.total} EGP'),
-                    Text('Paid: ${invoice.paid} EGP'),
-                    Text('Remaining: ${invoice.remaining} EGP'),
-                    if (invoice.isReturned) const Text('RETURNED'),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text('Items', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text('Invoice: ${invoice.invoiceNumber}'),
+            Text('Total: ${invoice.total} EGP'),
+            if (invoice.isReturned) const Text('RETURNED'),
             Expanded(
               child: items.when(
-                data: (items) => ListView.builder(
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return ListTile(
-                      title: Text(item.itemName),
-                      subtitle: Text('Qty: ${item.quantity}\nPrice: ${item.unitPrice} EGP'),
-                      trailing: Text('${item.total} EGP'),
-                    );
-                  },
+                data: (data) => ListView.builder(
+                  itemCount: data.length,
+                  itemBuilder: (_, i) => ListTile(title: Text(data[i].itemName)),
                 ),
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Text(e.toString()),
