@@ -12,6 +12,12 @@ class InvoiceDetailsPage extends ConsumerWidget {
 
   const InvoiceDetailsPage({super.key, required this.invoice});
 
+  Future<void> _returnInvoice(BuildContext context, WidgetRef ref) async {
+    final repo = ref.read(salesRepositoryProvider);
+    await repo.returnSale(invoice.id);
+    ref.invalidate(invoicesProvider);
+  }
+
   Future<void> _deleteInvoice(BuildContext context, WidgetRef ref) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -19,14 +25,8 @@ class InvoiceDetailsPage extends ConsumerWidget {
         title: const Text('Delete Invoice'),
         content: const Text('This will remove the invoice completely and restore stock. Continue?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
         ],
       ),
     );
@@ -35,12 +35,9 @@ class InvoiceDetailsPage extends ConsumerWidget {
 
     final repo = ref.read(salesRepositoryProvider);
     await repo.deleteSaleCompletely(invoice.id);
-
     ref.invalidate(invoicesProvider);
 
-    if (context.mounted) {
-      Navigator.pop(context);
-    }
+    if (context.mounted) Navigator.pop(context);
   }
 
   @override
@@ -51,6 +48,12 @@ class InvoiceDetailsPage extends ConsumerWidget {
       appBar: AppBar(
         title: Text(invoice.invoiceNumber),
         actions: [
+          if (!invoice.isReturned)
+            IconButton(
+              icon: const Icon(Icons.undo),
+              tooltip: 'Return invoice',
+              onPressed: () => _returnInvoice(context, ref),
+            ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: () => _deleteInvoice(context, ref),
@@ -75,32 +78,26 @@ class InvoiceDetailsPage extends ConsumerWidget {
                     Text('Total: ${invoice.total} EGP'),
                     Text('Paid: ${invoice.paid} EGP'),
                     Text('Remaining: ${invoice.remaining} EGP'),
+                    if (invoice.isReturned) const Text('RETURNED'),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 20),
             const Text('Items', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
             Expanded(
               child: items.when(
-                data: (items) {
-                  if (items.isEmpty) return const Center(child: Text('No items'));
-
-                  return ListView.builder(
-                    itemCount: items.length,
-                    itemBuilder: (context, index) {
-                      final item = items[index];
-                      return Card(
-                        child: ListTile(
-                          title: Text(item.itemName),
-                          subtitle: Text('Qty: ${item.quantity}\nPrice: ${item.unitPrice} EGP'),
-                          trailing: Text('${item.total} EGP'),
-                        ),
-                      );
-                    },
-                  );
-                },
+                data: (items) => ListView.builder(
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return ListTile(
+                      title: Text(item.itemName),
+                      subtitle: Text('Qty: ${item.quantity}\nPrice: ${item.unitPrice} EGP'),
+                      trailing: Text('${item.total} EGP'),
+                    );
+                  },
+                ),
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Text(e.toString()),
               ),
