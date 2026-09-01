@@ -52,7 +52,7 @@ class _AddExpenseDialogState extends ConsumerState<AddExpenseDialog> {
             const SizedBox(height: 12),
 
             DropdownButtonFormField<String>(
-              value: category,
+              initialValue: category,
 
               items: const [
                 DropdownMenuItem(value: "Bills", child: Text("Bills")),

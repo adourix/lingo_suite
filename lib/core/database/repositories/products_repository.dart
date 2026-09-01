@@ -75,8 +75,13 @@ class ProductsRepository {
   /// Delete Product
   /// =========================
 
-  Future<int> delete(int id) {
-    return (db.delete(db.products)..where((tbl) => tbl.id.equals(id))).go();
+  Future<void> delete(int id) async {
+    await (db.update(db.products)..where((tbl) => tbl.id.equals(id))).write(
+      ProductsCompanion(
+        isActive: const Value(false),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
   }
 
   /// =========================

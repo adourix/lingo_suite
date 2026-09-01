@@ -249,11 +249,7 @@ class ThermalPrinterService {
       final price = item.total / item.quantity;
 
       add(
-        name.padRight(14) +
-            item.quantity.toString().padLeft(4) +
-            price.toStringAsFixed(0).padLeft(9) +
-            item.total.toStringAsFixed(0).padLeft(9) +
-            "\n",
+        "${name.padRight(14)}${item.quantity.toString().padLeft(4)}${price.toStringAsFixed(0).padLeft(9)}${item.total.toStringAsFixed(0).padLeft(9)}\n",
       );
     }
 

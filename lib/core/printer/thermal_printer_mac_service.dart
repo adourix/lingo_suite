@@ -11,86 +11,48 @@ class ThermalPrinterMacService {
   }) async {
     await _checkPrinter();
 
-    await _printMac(
-      sale,
-      items,
-    );
+    await _printMac(sale, items);
   }
 
-
-
-  static Future<void> _printMac(
-    Sale sale,
-    List<SaleItem> items,
-  ) async {
-
+  static Future<void> _printMac(Sale sale, List<SaleItem> items) async {
     final List<int> bytes = [];
 
-
     void add(String text) {
-      bytes.addAll(
-        text.codeUnits,
-      );
+      bytes.addAll(text.codeUnits);
     }
-
 
     void command(List<int> cmd) {
       bytes.addAll(cmd);
     }
 
-
     void align(int value) {
-      command([
-        0x1B,
-        0x61,
-        value,
-      ]);
+      command([0x1B, 0x61, value]);
     }
-
 
     void bold(bool value) {
-      command([
-        0x1B,
-        0x45,
-        value ? 1 : 0,
-      ]);
+      command([0x1B, 0x45, value ? 1 : 0]);
     }
-
 
     void size(int value) {
-      command([
-        0x1D,
-        0x21,
-        value,
-      ]);
+      command([0x1D, 0x21, value]);
     }
-
 
     void normal() {
       size(0x00);
       bold(false);
     }
 
-
     String line() {
       return "================================================\n";
     }
-
 
     String dash() {
       return "------------------------------------------------\n";
     }
 
-
-
     // INIT
 
-    command([
-      0x1B,
-      0x40,
-    ]);
-
-
+    command([0x1B, 0x40]);
 
     // HEADER
 
@@ -100,336 +62,151 @@ class ThermalPrinterMacService {
 
     size(0x11);
 
-
-    add(
-      "LINGO STORE\n",
-    );
-
+    add("LINGO STORE\n");
 
     normal();
 
+    add("Tel: 01552854444\n");
 
-
-    add(
-      "Tel: 01552854444\n",
-    );
-
-
-    add(
-      line(),
-    );
-
-
-
+    add(line());
 
     // INFO
 
     align(0);
 
-
     bold(true);
 
-    add(
-      "INVOICE DETAILS\n",
-    );
-
+    add("INVOICE DETAILS\n");
 
     bold(false);
 
+    add(dash());
 
-    add(
-      dash(),
-    );
+    add("Invoice : ${sale.invoiceNumber}\n");
 
+    add("Date    : ${sale.saleDate}\n");
 
-    add(
-      "Invoice : ${sale.invoiceNumber}\n",
-    );
+    add("Cashier : Admin\n");
 
-
-    add(
-      "Date    : ${sale.saleDate}\n",
-    );
-
-
-    add(
-      "Cashier : Admin\n",
-    );
-
-
-    add(
-      dash(),
-    );
-
-
-
+    add(dash());
 
     // ITEMS
 
-
     bold(true);
 
-
-    add(
-      "ITEM             QTY   PRICE   TOTAL\n",
-    );
-
+    add("ITEM             QTY   PRICE   TOTAL\n");
 
     bold(false);
 
+    add(dash());
 
-    add(
-      dash(),
-    );
-
-
-
-    for(final item in items){
-
+    for (final item in items) {
       String name = item.itemName;
 
-
-      if(name.length > 13){
-        name = name.substring(0,13);
+      if (name.length > 13) {
+        name = name.substring(0, 13);
       }
 
-
-      final price =
-          item.total / item.quantity;
-
-
+      final price = item.total / item.quantity;
 
       add(
-        name.padRight(14) +
-        item.quantity
-            .toString()
-            .padLeft(4) +
-        price
-            .toStringAsFixed(0)
-            .padLeft(9) +
-        item.total
-            .toStringAsFixed(0)
-            .padLeft(9) +
-        "\n",
+        "${name.padRight(14)}${item.quantity.toString().padLeft(4)}${price.toStringAsFixed(0).padLeft(9)}${item.total.toStringAsFixed(0).padLeft(9)}\n",
       );
-
     }
 
+    add(dash());
 
-
-    add(
-      dash(),
-    );
-
-
-
-
-   // SUMMARY + TOTAL
-
-align(0);
-
-
-bold(true);
-
-add(
-  "SUMMARY\n",
-);
-
-
-bold(false);
-
-
-add(
-  dash(),
-);
-
-
-add(
-  "Subtotal : ${sale.subtotal.toStringAsFixed(2)} EGP\n",
-);
-
-
-add(
-  "Discount : ${sale.discount.toStringAsFixed(2)} EGP\n",
-);
-
-
-add(
-  "Tax      : ${sale.tax.toStringAsFixed(2)} EGP\n",
-);
-
-
-add(
-  dash(),
-);
-
-
-
-align(1);
-
-
-bold(true);
-
-size(0x10);
-
-
-
-add(
-  "TOTAL\n",
-);
-
-
-add(
-  "${sale.total.toStringAsFixed(2)} EGP\n",
-);
-
-
-
-normal();
-
-
-
-add(
-  line(),
-);
-
-
-
-
-    // PAYMENT
-
+    // SUMMARY + TOTAL
 
     align(0);
 
-
-    add(
-      "Payment : Cash\n",
-    );
-
-
-    add(
-      "Paid    : ${sale.total.toStringAsFixed(2)} EGP\n",
-    );
-
-
-    add(
-      "Change  : 0.00 EGP\n",
-    );
-
-
-    add(
-      dash(),
-    );
-
-
-
-
-    // FOOTER
-
-
-    align(1);
-
-
     bold(true);
 
-
-    add(
-      "THANK YOU!\n",
-    );
-
+    add("SUMMARY\n");
 
     bold(false);
 
+    add(dash());
 
-    add(
-      "Visit Again\n",
-    );
+    add("Subtotal : ${sale.subtotal.toStringAsFixed(2)} EGP\n");
 
+    add("Discount : ${sale.discount.toStringAsFixed(2)} EGP\n");
 
-    add(
-      "LINGO STORE\n",
-    );
+    add("Tax      : ${sale.tax.toStringAsFixed(2)} EGP\n");
 
+    add(dash());
 
-    add(
-      "\n\n\n\n",
-    );
+    align(1);
 
+    bold(true);
 
+    size(0x10);
 
+    add("TOTAL\n");
+
+    add("${sale.total.toStringAsFixed(2)} EGP\n");
+
+    normal();
+
+    add(line());
+
+    // PAYMENT
+
+    align(0);
+
+    add("Payment : Cash\n");
+
+    add("Paid    : ${sale.total.toStringAsFixed(2)} EGP\n");
+
+    add("Change  : 0.00 EGP\n");
+
+    add(dash());
+
+    // FOOTER
+
+    align(1);
+
+    bold(true);
+
+    add("THANK YOU!\n");
+
+    bold(false);
+
+    add("Visit Again\n");
+
+    add("LINGO STORE\n");
+
+    add("\n\n\n\n");
 
     // CUT PAPER
 
-    command([
-      0x1D,
-      0x56,
-      0x00,
+    command([0x1D, 0x56, 0x00]);
+
+    final file = File("/tmp/lingo_invoice.raw");
+
+    await file.writeAsBytes(bytes);
+
+    final result = await Process.run("lp", [
+      "-d",
+      printerName,
+
+      // send ESC/POS raw commands
+      "-o",
+      "raw",
+
+      file.path,
     ]);
 
-
-
-
-    final file = File(
-      "/tmp/lingo_invoice.raw",
-    );
-
-
-    await file.writeAsBytes(
-      bytes,
-    );
-
-
-
-    final result = await Process.run(
-      "lp",
-      [
-        "-d",
-        printerName,
-
-        // send ESC/POS raw commands
-        "-o",
-        "raw",
-
-        file.path,
-      ],
-    );
-
-
-
-    if(result.exitCode != 0){
-
-      throw Exception(
-        "Printer Error:\n${result.stderr}",
-      );
-
+    if (result.exitCode != 0) {
+      throw Exception("Printer Error:\n${result.stderr}");
     }
-
   }
-
-
-
 
   static Future<void> _checkPrinter() async {
+    final result = await Process.run("lpstat", ["-p", printerName]);
 
-
-    final result = await Process.run(
-      "lpstat",
-      [
-        "-p",
-        printerName,
-      ],
-    );
-
-
-
-    if(result.exitCode != 0){
-
-      throw Exception(
-        "Printer not found: $printerName",
-      );
-
+    if (result.exitCode != 0) {
+      throw Exception("Printer not found: $printerName");
     }
-
   }
-
 }

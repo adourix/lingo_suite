@@ -179,7 +179,7 @@ class DashboardPage extends ConsumerWidget {
 
       loading: () => "...",
 
-      error: (_, __) => "0",
+      error: (_, _) => "0",
     );
   }
 
@@ -189,7 +189,7 @@ class DashboardPage extends ConsumerWidget {
 
       loading: () => "...",
 
-      error: (_, __) => "0",
+      error: (_, _) => "0",
     );
   }
 }
