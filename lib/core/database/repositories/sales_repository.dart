@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../../features/pos/models/payment_data.dart';
 import '../app_database.dart';
 import '../../../features/pos/models/checkout_request.dart';
+import '../../auth/auth_models.dart';
 
 class SalesRepository {
   final AppDatabase db;
@@ -35,8 +36,16 @@ class SalesRepository {
   }
 
   Future<int> checkout(CheckoutRequest request) async {
+    final actor = await (db.select(db.users)..where((u) => u.id.equals(request.userId))).getSingleOrNull();
+    if (actor == null || !actor.isActive || !Permissions.can(actor.role, Permissions.pos)) {
+      throw StateError('User is not authorized to make sales');
+    }
     if (request.items.isEmpty) {
       throw ArgumentError('Cart cannot be empty');
+    }
+
+    if (request.items.any((item) => item.quantity <= 0 || item.price < 0 || item.discount < 0)) {
+      throw ArgumentError('Invalid sale item');
     }
 
     final subtotal = request.items.fold<double>(
@@ -45,7 +54,7 @@ class SalesRepository {
     );
 
     final total = subtotal - request.discount + request.tax;
-    if (subtotal < 0 || request.discount < 0 || request.tax < 0 || total < 0) {
+    if (subtotal < 0 || request.discount < 0 || request.tax < 0 || total < 0 || request.discount > subtotal) {
       throw ArgumentError('Invalid sale totals');
     }
 
@@ -58,11 +67,19 @@ class SalesRepository {
       throw ArgumentError('Payment amount cannot be negative');
     }
 
-    final isCreditSale = request.payments.any(
-      (payment) => payment.method == PaymentMethod.customerCredit,
-    );
+    if (request.payments.isEmpty || paid <= 0) {
+      throw ArgumentError('At least one payment is required');
+    }
 
-    final effectivePaid = isCreditSale ? 0.0 : paid;
+    final creditAmount = request.payments
+        .where((payment) => payment.method == PaymentMethod.customerCredit)
+        .fold<double>(0, (sum, payment) => sum + payment.amount);
+    final effectivePaid = paid - creditAmount;
+    final isCreditSale = creditAmount > 0;
+
+    if (paid > total || effectivePaid < 0 || (creditAmount > 0 && total - effectivePaid != creditAmount)) {
+      throw ArgumentError('Invalid payment total');
+    }
 
     if (effectivePaid > total) {
       throw ArgumentError('Payment cannot exceed invoice total');
@@ -230,7 +247,11 @@ class SalesRepository {
         .getSingleOrNull();
   }
 
-  Future<void> returnSale(int saleId) async {
+  Future<void> returnSale(int saleId, int actorId) async {
+    final actor = await (db.select(db.users)..where((u) => u.id.equals(actorId))).getSingleOrNull();
+    if (actor == null || !actor.isActive || !Permissions.can(actor.role, Permissions.pos)) {
+      throw StateError('User is not authorized to return sales');
+    }
     await db.transaction(() async {
       final sale = await (db.select(
         db.sales,
@@ -298,7 +319,7 @@ class SalesRepository {
 
       await db.into(db.activityLogs).insert(
         ActivityLogsCompanion.insert(
-          userId: sale.userId,
+          userId: actorId,
           action: 'return',
           entity: 'sale',
           entityId: Value(saleId),
