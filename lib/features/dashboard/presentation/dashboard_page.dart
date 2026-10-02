@@ -12,7 +12,9 @@ import 'widgets/top_products.dart';
 import 'widgets/profit_chart.dart';
 
 class DashboardPage extends ConsumerWidget {
-  const DashboardPage({super.key});
+  const DashboardPage({super.key, required this.onNewSale});
+
+  final VoidCallback onNewSale;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -54,10 +56,7 @@ class DashboardPage extends ConsumerWidget {
               ),
 
               ElevatedButton.icon(
-                onPressed: () {
-                  // TODO:
-                  // Navigate to new sale
-                },
+                onPressed: onNewSale,
 
                 icon: const Icon(Icons.add),
 
