@@ -13,6 +13,10 @@ class CustomerPaymentsRepository {
     required String method,
     String? notes,
   }) async {
+    if (amount <= 0) {
+      throw ArgumentError.value(amount, 'amount', 'must be greater than zero');
+    }
+
     return await db.transaction(() async {
       // 1- Add payment record
 
