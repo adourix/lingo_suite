@@ -35,25 +35,46 @@ class SalesRepository {
   }
 
   Future<int> checkout(CheckoutRequest request) async {
+    if (request.items.isEmpty) {
+      throw ArgumentError('Cart cannot be empty');
+    }
+
+    final subtotal = request.items.fold<double>(
+      0,
+      (sum, item) => sum + item.subtotal,
+    );
+
+    final total = subtotal - request.discount + request.tax;
+    if (subtotal < 0 || request.discount < 0 || request.tax < 0 || total < 0) {
+      throw ArgumentError('Invalid sale totals');
+    }
+
+    final paid = request.payments.fold<double>(
+      0.0,
+      (sum, payment) => sum + payment.amount,
+    );
+
+    if (request.payments.any((payment) => payment.amount < 0)) {
+      throw ArgumentError('Payment amount cannot be negative');
+    }
+
+    final isCreditSale = request.payments.any(
+      (payment) => payment.method == PaymentMethod.customerCredit,
+    );
+
+    final effectivePaid = isCreditSale ? 0.0 : paid;
+
+    if (effectivePaid > total) {
+      throw ArgumentError('Payment cannot exceed invoice total');
+    }
+
+    if (isCreditSale && request.customerId == null) {
+      throw ArgumentError('Customer is required for credit sales');
+    }
+
     return await db.transaction(() async {
       final invoiceNumber = await generateInvoiceNumber();
 
-      final subtotal = request.items.fold<double>(
-        0,
-        (sum, item) => sum + item.subtotal,
-      );
-
-      final isCreditSale = request.payments.any(
-        (payment) => payment.method == PaymentMethod.customerCredit,
-      );
-
-      final paid = isCreditSale
-          ? 0.0
-          : request.payments.fold<double>(
-              0.0,
-              (sum, payment) => sum + payment.amount,
-            );
-      final total = subtotal - request.discount + request.tax;
       for (final item in request.items) {
         if (item.product != null) {
           if (item.quantity > item.product!.quantity) {
@@ -79,9 +100,9 @@ class SalesRepository {
 
               total: total,
 
-              paid: Value(paid),
+              paid: Value(effectivePaid),
 
-              remaining: Value(total - paid),
+              remaining: Value(total - effectivePaid),
 
               notes: Value(request.notes),
             ),
@@ -163,7 +184,7 @@ class SalesRepository {
 
       // Update customer balance for credit sales
       if (request.customerId != null) {
-        final remaining = total - paid;
+        final remaining = total - effectivePaid;
 
         if (remaining > 0) {
           final customer = await (db.select(
