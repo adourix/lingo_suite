@@ -155,6 +155,15 @@ class AnalyticsRepository {
     return result.read<double?>('value') ?? 0;
   }
 
+  Future<double> getStockSellingValue() async {
+    final result = await db.customSelect('''
+      SELECT COALESCE(SUM(quantity * selling_price), 0) AS value
+      FROM products
+    ''').getSingle();
+
+    return result.read<double>('value');
+  }
+
   Future<FinancialSummary> getFinancialSummary({
     required DateTime from,
     required DateTime to,
