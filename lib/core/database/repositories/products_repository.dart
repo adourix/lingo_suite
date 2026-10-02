@@ -91,7 +91,12 @@ class ProductsRepository {
     if (quantity <= 0) throw ArgumentError.value(quantity, 'quantity', 'must be greater than zero');
     final product = await getById(id);
     if (product == null) return;
-    await update(id, ProductsCompanion(quantity: Value(product.quantity + quantity)));
+    await (db.update(db.products)..where((t) => t.id.equals(id))).write(
+      ProductsCompanion(
+        quantity: Value(product.quantity + quantity),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
     await _audit('stock_increase', id, 'Increased stock by $quantity');
   }
 
@@ -103,7 +108,12 @@ class ProductsRepository {
     if (quantity > product.quantity) {
       throw ArgumentError.value(quantity, 'quantity', 'cannot exceed current stock');
     }
-    await update(id, ProductsCompanion(quantity: Value(product.quantity - quantity)));
+    await (db.update(db.products)..where((t) => t.id.equals(id))).write(
+      ProductsCompanion(
+        quantity: Value(product.quantity - quantity),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
     await _audit('stock_decrease', id, 'Decreased stock by $quantity');
   }
 }
