@@ -185,9 +185,16 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
                               }
 
                               if (value == "delete") {
-                                await repo.delete(customer.id);
-
-                                setState(() {});
+                                try {
+                                  await repo.delete(customer.id);
+                                  if (mounted) setState(() {});
+                                } catch (e) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(e.toString())),
+                                    );
+                                  }
+                                }
                               }
                             },
 
