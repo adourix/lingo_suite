@@ -26,7 +26,11 @@ class _AppShellState extends State<AppShell> {
     "Reports",
   ];
   late final List<Widget> pages = [
-    const DashboardPage(), // 0
+    DashboardPage(onNewSale: () {
+      setState(() {
+        selectedIndex = 1;
+      });
+    }), // 0
     const PosPage(), // 1
     const ProductsPage(), // 2
     const CustomersPage(),
