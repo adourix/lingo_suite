@@ -69,8 +69,12 @@ final supplierDebtProvider = FutureProvider<double>((ref) async {
 
 final stockValueProvider = FutureProvider<double>((ref) async {
   final repo = ref.watch(analyticsRepositoryProvider);
-
   return repo.getStockValue();
+});
+
+final stockSellingValueProvider = FutureProvider<double>((ref) async {
+  final repo = ref.watch(analyticsRepositoryProvider);
+  return repo.getStockSellingValue();
 });
 
 final salesChartProvider = FutureProvider<List<Map<String, dynamic>>>((
