@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/sales_repository_provider.dart';
+import '../../../../core/providers/auth_provider.dart';
 
 class ReturnInvoiceButton extends ConsumerWidget {
   const ReturnInvoiceButton({super.key});
@@ -74,7 +75,7 @@ class ReturnInvoiceButton extends ConsumerWidget {
         if (shouldReturn != true) return;
 
         try {
-          await repo.returnSale(sale.id);
+          await repo.returnSale(sale.id, ref.read(authUserProvider)!.id);
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Invoice returned successfully')),
