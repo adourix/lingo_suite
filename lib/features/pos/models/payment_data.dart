@@ -9,3 +9,13 @@ class PaymentData {
     required this.amount,
   });
 }
+
+class PaymentResult {
+  final List<PaymentData> payments;
+  final double change;
+
+  const PaymentResult({
+    required this.payments,
+    required this.change,
+  });
+}
