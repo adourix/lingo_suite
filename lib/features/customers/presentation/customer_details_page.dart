@@ -5,7 +5,6 @@ import 'invoice_details_page.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/customer_sales_provider.dart';
-import '../../../core/providers/customers_repository_provider.dart';
 import '../../../core/providers/customer_payments_repository_provider.dart';
 
 import 'widgets/pay_debt_dialog.dart';
@@ -124,13 +123,7 @@ class _CustomerDetailsPageState extends ConsumerState<CustomerDetailsPage> {
                           );
 
                           if (context.mounted) {
-                            Navigator.pop(context);
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Debt paid successfully"),
-                              ),
-                            );
+                            Navigator.pop(context, true);
                           }
                         } catch (e) {
                           if (context.mounted) {
