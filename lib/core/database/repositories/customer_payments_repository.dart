@@ -40,6 +40,14 @@ class CustomerPaymentsRepository {
         db.customers,
       )..where((tbl) => tbl.id.equals(customerId))).getSingle();
 
+      if (amount > customer.balance) {
+        throw ArgumentError.value(
+          amount,
+          'amount',
+          'cannot exceed customer balance',
+        );
+      }
+
       final newBalance = customer.balance - amount;
 
       await (db.update(
