@@ -21,13 +21,17 @@ class SalesRepository {
               ..limit(1))
             .getSingleOrNull();
 
-    if (lastInvoice == null) {
-      return '${prefix}0001';
+    var nextNumber = 1;
+
+    if (lastInvoice != null) {
+      final match = RegExp(
+        r'^INV-\d{8}-(\d+)',
+      ).firstMatch(lastInvoice.invoiceNumber);
+
+      nextNumber = (int.tryParse(match?.group(1) ?? '') ?? 0) + 1;
     }
 
-    final parts = lastInvoice.invoiceNumber.split('-');
-    final lastNumber = int.tryParse(parts.last) ?? 0;
-    return '$prefix${(lastNumber + 1).toString().padLeft(4, '0')}-${now.microsecond.toString().padLeft(6, '0')}';
+    return '$prefix${nextNumber.toString().padLeft(4, '0')}-${now.microsecond.toString().padLeft(6, '0')}';
   }
 
   Future<int> checkout(CheckoutRequest request) async {
