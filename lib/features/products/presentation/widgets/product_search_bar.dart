@@ -59,6 +59,7 @@ class ProductSearchBar extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(AppRadius.md),
               ),
             ),
+            onChanged: onBarcodeSubmitted,
             onSubmitted: onBarcodeSubmitted,
           ),
         ),
