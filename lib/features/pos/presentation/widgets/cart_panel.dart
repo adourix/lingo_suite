@@ -702,9 +702,7 @@ SizedBox(
                   0,
 
 
-              payments: [
-                payment,
-              ],
+              payments: payments,
 
             );
 
@@ -802,13 +800,8 @@ SizedBox(
           ScaffoldMessenger.of(context)
           .showSnackBar(
 
-            const SnackBar(
-
-              content:
-                Text(
-                  "Sale completed",
-                ),
-
+            SnackBar(
+              content: Text("Sale completed"),
             ),
 
           );
