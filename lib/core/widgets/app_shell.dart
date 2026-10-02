@@ -11,6 +11,7 @@ import 'app_topbar.dart';
 import '../../features/pos/presentation/pos_page.dart';
 import '../../features/customers/presentation/customers_page.dart';
 import '../../features/reports/presentation/reports_page.dart';
+import '../../features/audit/presentation/audit_logs_page.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
@@ -29,6 +30,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     'Customers',
     'Suppliers',
     'Reports',
+    'Audit Log',
   ];
 
   late final List<Widget> pages = [
@@ -45,6 +47,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     const CustomersPage(),
     const SuppliersPage(),
     const ReportsPage(),
+    const AuditLogsPage(),
   ];
 
   @override
@@ -106,6 +109,8 @@ class _AppShellState extends ConsumerState<AppShell> {
         return Permissions.suppliers;
       case 5:
         return Permissions.reports;
+      case 6:
+        return Permissions.auditLogs;
       default:
         return '';
     }
