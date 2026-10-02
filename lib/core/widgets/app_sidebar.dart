@@ -3,15 +3,32 @@ import 'package:flutter/material.dart';
 class AppSidebar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onItemSelected;
+  final String fullName;
+  final String role;
+  final VoidCallback onLogout;
+  final bool Function(String permission) can;
 
   const AppSidebar({
     super.key,
     required this.selectedIndex,
     required this.onItemSelected,
+    required this.fullName,
+    required this.role,
+    required this.onLogout,
+    required this.can,
   });
 
   @override
   Widget build(BuildContext context) {
+    final items = <({int index, IconData icon, String title, String permission})>[
+      (index: 0, icon: Icons.dashboard_outlined, title: 'Dashboard', permission: 'dashboard'),
+      (index: 1, icon: Icons.point_of_sale_outlined, title: 'POS', permission: 'pos'),
+      (index: 2, icon: Icons.inventory_2_outlined, title: 'Products', permission: 'products'),
+      (index: 3, icon: Icons.people_outline, title: 'Customers', permission: 'customers'),
+      (index: 4, icon: Icons.local_shipping_outlined, title: 'Suppliers', permission: 'suppliers'),
+      (index: 5, icon: Icons.bar_chart_outlined, title: 'Reports', permission: 'reports'),
+    ];
+
     return Container(
       width: 250,
       decoration: const BoxDecoration(
@@ -21,32 +38,26 @@ class AppSidebar extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 25),
-
           const Text(
-            "Lingo Store",
+            'Lingo Store',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-
           const SizedBox(height: 30),
-
-          _item(0, Icons.dashboard_outlined, "Dashboard"),
-          _item(1, Icons.point_of_sale_outlined, "POS"),
-          _item(2, Icons.inventory_2_outlined, "Products"),
-
-          _item(3, Icons.people_outline, "Customers"),
-          _item(4, Icons.local_shipping_outlined, "Suppliers"),
-          _item(5, Icons.bar_chart_outlined, "Reports"),
-
+          for (final item in items)
+            if (can(item.permission))
+              _item(item.index, item.icon, item.title),
           const Spacer(),
-
           const Divider(),
-
-          const ListTile(
-            leading: CircleAvatar(child: Icon(Icons.person)),
-            title: Text("Admin"),
-            subtitle: Text("Administrator"),
+          ListTile(
+            leading: const CircleAvatar(child: Icon(Icons.person)),
+            title: Text(fullName),
+            subtitle: Text(role.toUpperCase()),
+            trailing: IconButton(
+              tooltip: 'Logout',
+              onPressed: onLogout,
+              icon: const Icon(Icons.logout),
+            ),
           ),
-
           const SizedBox(height: 15),
         ],
       ),
