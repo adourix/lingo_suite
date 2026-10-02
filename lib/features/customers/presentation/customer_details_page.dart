@@ -6,6 +6,7 @@ import 'invoice_details_page.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/customer_sales_provider.dart';
 import '../../../core/providers/customers_repository_provider.dart';
+import '../../../core/providers/customer_payments_repository_provider.dart';
 
 import 'widgets/pay_debt_dialog.dart';
 
@@ -108,23 +109,15 @@ class _CustomerDetailsPageState extends ConsumerState<CustomerDetailsPage> {
                         });
 
                         try {
-                          final repo = ref.read(customersRepositoryProvider);
+                          final paymentsRepo = ref.read(
+                            customerPaymentsRepositoryProvider,
+                          );
 
-                          await repo
-                              .update(
-                                widget.customer.copyWith(
-                                  balance: newBalance,
-
-                                  updatedAt: DateTime.now(),
-                                ),
-                              )
-                              .timeout(
-                                const Duration(seconds: 5),
-
-                                onTimeout: () {
-                                  throw Exception("Database timeout");
-                                },
-                              );
+                          await paymentsRepo.addPayment(
+                            customerId: widget.customer.id,
+                            amount: amount,
+                            method: 'cash',
+                          );
 
                           ref.invalidate(
                             customerSalesProvider(widget.customer.id),
