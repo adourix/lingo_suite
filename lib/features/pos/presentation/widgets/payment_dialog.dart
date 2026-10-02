@@ -63,6 +63,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
   void _confirm() {
     final values = <PaymentData>[];
     var remaining = widget.total;
+    var change = 0.0;
 
     for (final line in lines) {
       final entered = _amount(line);
@@ -73,6 +74,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
 
       if (line.method == PaymentMethod.cash) {
         final applied = entered > remaining ? remaining : entered;
+        change += entered - applied;
         if (applied > 0) {
           values.add(PaymentData(method: line.method, amount: applied));
           remaining -= applied;
@@ -94,7 +96,10 @@ class _PaymentDialogState extends State<PaymentDialog> {
       return;
     }
 
-    Navigator.pop(context, values);
+    Navigator.pop(
+      context,
+      PaymentResult(payments: values, change: change),
+    );
   }
 
   void _showError(String message) {
