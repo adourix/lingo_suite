@@ -45,6 +45,14 @@ class CustomersRepository {
       throw Exception('Cannot delete customer with sales history');
     }
 
+    final payments = await (db.select(db.customerPayments)
+          ..where((p) => p.customerId.equals(id)))
+        .get();
+
+    if (payments.isNotEmpty) {
+      throw Exception('Cannot delete customer with payment history');
+    }
+
     return (db.delete(db.customers)..where((c) => c.id.equals(id))).go();
   }
 }
