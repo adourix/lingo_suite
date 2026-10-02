@@ -17,6 +17,7 @@ class ProductsPage extends ConsumerStatefulWidget {
 
 class _ProductsPageState extends ConsumerState<ProductsPage> {
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _barcodeController = TextEditingController();
 
   String _search = '';
   int? _selectedCategory;
@@ -24,6 +25,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
    @override
   void dispose() {
     _searchController.dispose();
+    _barcodeController.dispose();
     super.dispose();
   }
 
@@ -43,6 +45,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
 
             ProductSearchBar(
               controller: _searchController,
+              barcodeController: _barcodeController,
               onChanged: (value) {
                 setState(() {
                   _search = value;
@@ -52,10 +55,6 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                 final value = barcode.trim();
                 setState(() {
                   _search = value;
-                  _searchController.text = value;
-                  _searchController.selection = TextSelection.collapsed(
-                    offset: value.length,
-                  );
                 });
               },
               onCategoryChanged: (value) {
