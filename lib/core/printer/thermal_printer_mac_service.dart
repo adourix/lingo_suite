@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:path_provider/path_provider.dart';
+
 import '../database/app_database.dart';
 
 class ThermalPrinterMacService {
@@ -109,7 +111,8 @@ class ThermalPrinterMacService {
 
     command([0x1D, 0x56, 0x00]);
 
-    final file = File("/tmp/lingo_invoice.raw");
+    final tempDir = await getTemporaryDirectory();
+    final file = File("${tempDir.path}/lingo_invoice.raw");
     await file.writeAsBytes(bytes);
 
     final result = await Process.run(
