@@ -38,7 +38,7 @@ class AnalyticsRepository {
         .customSelect(
           '''
       SELECT 
-      SUM(si.quantity * si.cost_price) as cost
+      COALESCE(SUM(si.quantity * si.cost_price), 0) as cost
 
       FROM sale_items si
 
@@ -49,6 +49,7 @@ class AnalyticsRepository {
       WHERE s.sale_date >= ?
 
       AND s.sale_date <= ?
+      AND s.is_returned = 0
 
       ''',
 
@@ -196,6 +197,7 @@ class AnalyticsRepository {
     final result = await db.customSelect('''
       SELECT COUNT(*) as count
       FROM sales
+      WHERE is_returned = 0
       ''').getSingle();
 
     return result.read<int>('count');
@@ -269,6 +271,7 @@ class AnalyticsRepository {
 
     WHERE sale_date >= ?
     AND sale_date <= ?
+    AND is_returned = 0
 
     ''',
 
