@@ -126,15 +126,15 @@ class _SuppliersPageState extends ConsumerState<SuppliersPage> {
 
                       return Card(
                         child: ListTile(
-                          onTap: () {
-                            Navigator.push(
+                          onTap: () async {
+                            await Navigator.push<bool>(
                               context,
-
                               MaterialPageRoute(
                                 builder: (_) =>
                                     SupplierDetailsPage(supplier: supplier),
                               ),
                             );
+                            if (mounted) setState(() {});
                           },
 
                           leading: const CircleAvatar(child: Icon(Icons.store)),
