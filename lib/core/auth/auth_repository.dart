@@ -68,7 +68,7 @@ class AuthRepository {
       UsersCompanion.insert(
         fullName: fullName.trim(),
         username: username.trim(),
-        password: Value(_hash(password)),
+        password: _hash(password),
         role: role,
       ),
     );
