@@ -53,6 +53,37 @@ class AuthRepository {
     }
   }
 
+  Future<int> createUser({
+    required int actorId,
+    required String fullName,
+    required String username,
+    required String password,
+    required String role,
+  }) async {
+    await _requireAdmin(actorId);
+    if (fullName.trim().isEmpty || username.trim().isEmpty || password.length < 6) {
+      throw ArgumentError('Invalid user data');
+    }
+    final id = await db.into(db.users).insert(
+      UsersCompanion.insert(
+        fullName: fullName.trim(),
+        username: username.trim(),
+        password: Value(_hash(password)),
+        role: role,
+      ),
+    );
+    await db.into(db.activityLogs).insert(
+      ActivityLogsCompanion.insert(
+        userId: actorId,
+        action: 'create',
+        entity: 'user',
+        entityId: Value(id),
+        description: Value('Created user ' + username.trim() + ' with role ' + role),
+      ),
+    );
+    return id;
+  }
+
   Future<void> updateUser({
     required int userId,
     required int actorId,
