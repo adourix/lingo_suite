@@ -21,8 +21,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
   String _search = '';
   int? _selectedCategory;
   String? _stockFilter;
-  String _barcode = '';
-  @override
+   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -50,8 +49,13 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                 });
               },
               onBarcodeSubmitted: (barcode) {
+                final value = barcode.trim();
                 setState(() {
-                  _barcode = barcode.trim();
+                  _search = value;
+                  _searchController.text = value;
+                  _searchController.selection = TextSelection.collapsed(
+                    offset: value.length,
+                  );
                 });
               },
               onCategoryChanged: (value) {
@@ -82,16 +86,12 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                 data: (products) {
                   List<Product> filteredProducts = products;
 
-                  if (_search.trim().isNotEmpty) {
+                  final query = _search.trim().toLowerCase();
+                  if (query.isNotEmpty) {
                     filteredProducts = products.where((product) {
-                      return product.name.toLowerCase().contains(
-                        _search.toLowerCase(),
-                      );
-                    }).toList();
-                  }
-                  if (_barcode.isNotEmpty) {
-                    filteredProducts = filteredProducts.where((p) {
-                      return (p.barcode ?? '') == _barcode;
+                      return product.name.toLowerCase().contains(query) ||
+                          (product.sku?.toLowerCase().contains(query) ?? false) ||
+                          (product.barcode?.toLowerCase().contains(query) ?? false);
                     }).toList();
                   }
 
