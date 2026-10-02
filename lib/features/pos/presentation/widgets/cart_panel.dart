@@ -14,6 +14,7 @@ import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/database/app_database.dart';
 
 import '../../../../core/providers/analytics_provider.dart';
+import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/providers/cart_provider.dart';
 import '../../../../core/providers/customers_provider.dart';
 import '../../../../core/providers/customers_repository_provider.dart';
@@ -687,7 +688,7 @@ SizedBox(
 
               items: cart,
 
-              userId: 1,
+              userId: ref.read(authUserProvider)!.id,
 
               customerId:
                   selectedCustomer?.id,
