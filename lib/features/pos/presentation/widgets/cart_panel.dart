@@ -797,7 +797,13 @@ SizedBox(
           .showSnackBar(
 
             SnackBar(
-              content: Text("Sale completed"),
+              content: Text(
+                paymentResult.change > 0
+                    ? "Sale completed • Change: " +
+                        paymentResult.change.toStringAsFixed(2) +
+                        " EGP"
+                    : "Sale completed",
+              ),
             ),
 
           );
