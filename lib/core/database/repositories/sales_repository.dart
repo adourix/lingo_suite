@@ -75,12 +75,23 @@ class SalesRepository {
     return await db.transaction(() async {
       final invoiceNumber = await generateInvoiceNumber();
 
+      final freshProducts = <int, Product>{};
       for (final item in request.items) {
-        if (item.product != null) {
-          if (item.quantity > item.product!.quantity) {
-            throw Exception('Not enough stock for ${item.product!.name}');
-          }
+        if (item.product == null) continue;
+
+        final product = await (db.select(db.products)
+              ..where((p) => p.id.equals(item.product!.id)))
+            .getSingleOrNull();
+
+        if (product == null || !product.isActive) {
+          throw Exception('Product is no longer available: ${item.name}');
         }
+
+        if (item.quantity > product.quantity) {
+          throw Exception('Not enough stock for ${product.name}');
+        }
+
+        freshProducts[product.id] = product;
       }
       final saleId = await db
           .into(db.sales)
@@ -134,17 +145,14 @@ class SalesRepository {
             );
 
         if (item.product != null) {
-          final product = item.product!;
-
-          if (product.quantity < item.quantity) {
-            throw Exception('Not enough stock for ${product.name}');
-          }
+          final product = freshProducts[item.product!.id]!;
+          final newQuantity = product.quantity - item.quantity;
 
           await (db.update(
             db.products,
           )..where((tbl) => tbl.id.equals(product.id))).write(
             ProductsCompanion(
-              quantity: Value(product.quantity - item.quantity),
+              quantity: Value(newQuantity),
 
               updatedAt: Value(DateTime.now()),
             ),
