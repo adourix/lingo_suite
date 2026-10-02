@@ -215,9 +215,9 @@ class ThermalPrinterMacService {
 
     final printers = result.stdout
         .toString()
-        .split(RegExp(r'\\r?\\n'))
+        .split(RegExp(r'\r?\n'))
         .map((line) {
-          final match = RegExp(r'^printer\\s+([^\\s]+)').firstMatch(line.trim());
+          final match = RegExp(r'^printer\s+([^\s]+)').firstMatch(line.trim());
           return match?.group(1);
         })
         .whereType<String>()
