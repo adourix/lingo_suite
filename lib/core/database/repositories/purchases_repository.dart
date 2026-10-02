@@ -50,8 +50,9 @@ class PurchasesRepository {
 
       final remaining = total - paid;
 
+      final timestamp = DateTime.now();
       final invoiceNumber =
-          'PUR-${DateFormat('yyyyMMddHHmmss').format(DateTime.now())}';
+          'PUR-${DateFormat('yyyyMMddHHmmssSSS').format(timestamp)}-${timestamp.microsecond.toString().padLeft(6, '0')}';
 
       final purchaseId = await db
           .into(db.purchases)
