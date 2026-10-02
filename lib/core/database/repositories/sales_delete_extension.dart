@@ -1,9 +1,14 @@
 import '../app_database.dart';
 import 'sales_repository.dart';
 import 'package:drift/drift.dart';
+import '../../auth/auth_models.dart';
 
 extension SalesDeleteExtension on SalesRepository {
-  Future<void> deleteSaleCompletely(int saleId) async {
+  Future<void> deleteSaleCompletely(int saleId, int actorId) async {
+    final actor = await (db.select(db.users)..where((u) => u.id.equals(actorId))).getSingleOrNull();
+    if (actor == null || !actor.isActive || !Permissions.can(actor.role, Permissions.pos)) {
+      throw StateError('User is not authorized to delete sales');
+    }
     await db.transaction(() async {
       final sale = await (db.select(db.sales)
             ..where((tbl) => tbl.id.equals(saleId)))
@@ -62,6 +67,16 @@ extension SalesDeleteExtension on SalesRepository {
       await (db.delete(db.sales)
             ..where((tbl) => tbl.id.equals(saleId)))
           .go();
+
+      await db.into(db.activityLogs).insert(
+        ActivityLogsCompanion.insert(
+          userId: actorId,
+          action: 'delete',
+          entity: 'sale',
+          entityId: Value(saleId),
+          description: Value('Deleted invoice ${sale.invoiceNumber}'),
+        ),
+      );
     });
   }
 }
