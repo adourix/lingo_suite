@@ -35,7 +35,15 @@ class SuppliersRepository {
     )..where((t) => t.id.equals(id))).write(supplier);
   }
 
-  Future<int> delete(int id) {
+  Future<int> delete(int id) async {
+    final purchases = await (db.select(db.purchases)
+          ..where((p) => p.supplierId.equals(id)))
+        .get();
+
+    if (purchases.isNotEmpty) {
+      throw Exception('Cannot delete supplier with purchase history');
+    }
+
     return (db.delete(db.suppliers)..where((t) => t.id.equals(id))).go();
   }
 
