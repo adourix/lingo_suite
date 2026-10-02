@@ -147,6 +147,28 @@ class _AddProductDialogState extends ConsumerState<AddProductDialog> {
         return;
       }
     }
+    final costPrice = double.tryParse(_costPrice.text.trim());
+    final sellingPrice = double.tryParse(_sellingPrice.text.trim());
+    final quantity = int.tryParse(_quantity.text.trim());
+    final minimumQuantity = int.tryParse(_minimumQuantity.text.trim());
+
+    if (costPrice == null ||
+        sellingPrice == null ||
+        quantity == null ||
+        minimumQuantity == null ||
+        costPrice < 0 ||
+        sellingPrice < 0 ||
+        quantity < 0 ||
+        minimumQuantity < 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Prices and quantities must be valid non-negative numbers')),
+        );
+        setState(() => _loading = false);
+      }
+      return;
+    }
+
     final companion = ProductsCompanion(
       name: Value(_name.text.trim()),
       barcode: Value(
@@ -155,10 +177,10 @@ class _AddProductDialogState extends ConsumerState<AddProductDialog> {
       sku: Value(_sku.text.trim().isEmpty ? null : _sku.text.trim()),
       categoryId: Value(_categoryId),
       supplierId: Value(_supplierId),
-      costPrice: Value(double.parse(_costPrice.text)),
-      sellingPrice: Value(double.parse(_sellingPrice.text)),
-      quantity: Value(int.parse(_quantity.text)),
-      minimumQuantity: Value(int.parse(_minimumQuantity.text)),
+      costPrice: Value(costPrice),
+      sellingPrice: Value(sellingPrice),
+      quantity: Value(quantity),
+      minimumQuantity: Value(minimumQuantity),
       imagePath: Value(
         _imagePath.text.trim().isEmpty ? null : _imagePath.text.trim(),
       ),
