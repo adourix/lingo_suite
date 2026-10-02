@@ -3,18 +3,22 @@ import 'dart:io';
 import '../database/app_database.dart';
 
 class ThermalPrinterMacService {
-  static const String printerName = "BIXOLON_SRP_330II";
+  static const String printerName = "BIXOLON SRP-330II";
 
   static Future<void> printInvoice({
     required Sale sale,
     required List<SaleItem> items,
   }) async {
-    await _checkPrinter();
+    final queueName = await _resolvePrinterName();
 
-    await _printMac(sale, items);
+    await _printMac(sale, items, queueName);
   }
 
-  static Future<void> _printMac(Sale sale, List<SaleItem> items) async {
+  static Future<void> _printMac(
+    Sale sale,
+    List<SaleItem> items,
+    String queueName,
+  ) async {
     final List<int> bytes = [];
 
     void add(String text) {
@@ -188,7 +192,7 @@ class ThermalPrinterMacService {
 
     final result = await Process.run("lp", [
       "-d",
-      printerName,
+      queueName,
 
       // send ESC/POS raw commands
       "-o",
@@ -202,11 +206,36 @@ class ThermalPrinterMacService {
     }
   }
 
-  static Future<void> _checkPrinter() async {
-    final result = await Process.run("lpstat", ["-p", printerName]);
+  static Future<String> _resolvePrinterName() async {
+    final result = await Process.run("lpstat", ["-p"]);
 
     if (result.exitCode != 0) {
-      throw Exception("Printer not found: $printerName");
+      throw Exception("Unable to query Mac printers");
     }
+
+    final printers = result.stdout
+        .toString()
+        .split(RegExp(r'\\r?\\n'))
+        .map((line) {
+          final match = RegExp(r'^printer\\s+([^\\s]+)').firstMatch(line.trim());
+          return match?.group(1);
+        })
+        .whereType<String>()
+        .toList();
+
+    String normalize(String value) {
+      return value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+    }
+
+    final wanted = normalize(printerName);
+    final match = printers.where((name) => normalize(name) == wanted).firstOrNull;
+
+    if (match != null) {
+      return match;
+    }
+
+    throw Exception(
+      "Printer not found: $printerName",
+    );
   }
 }
