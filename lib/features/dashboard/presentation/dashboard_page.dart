@@ -25,6 +25,8 @@ class DashboardPage extends ConsumerWidget {
     final customers = ref.watch(totalCustomersProvider);
 
     final products = ref.watch(totalProductsProvider);
+    final stockCost = ref.watch(stockValueProvider);
+    final stockRetail = ref.watch(stockSellingValueProvider);
 
     return SingleChildScrollView(
       padding: AppSpacing.page,
@@ -132,6 +134,18 @@ class DashboardPage extends ConsumerWidget {
                     change: "Active Items",
 
                     icon: Icons.inventory_2_outlined,
+                  ),
+                  StatCard(
+                    title: 'Stock Cost',
+                    value: _doubleValue(stockCost),
+                    change: 'Current Inventory Cost',
+                    icon: Icons.inventory_outlined,
+                  ),
+                  StatCard(
+                    title: 'Stock Retail',
+                    value: _doubleValue(stockRetail),
+                    change: 'Current Inventory Value',
+                    icon: Icons.sell_outlined,
                   ),
                 ],
               );
