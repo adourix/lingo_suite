@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import '../../../../core/providers/products_provider.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
@@ -6,11 +11,11 @@ import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import 'add_product_dialog.dart';
 
-class ProductsHeader extends StatelessWidget {
+class ProductsHeader extends ConsumerWidget {
   const ProductsHeader({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Row(
       children: [
         Expanded(
@@ -28,10 +33,39 @@ class ProductsHeader extends StatelessWidget {
         ),
 
         OutlinedButton.icon(
-          onPressed: () {
-            showDialog(
-              context: context,
-              builder: (_) => const AddProductDialog(),
+          onPressed: () async {
+            final products = await ref.read(productsProvider.future);
+            final document = pw.Document();
+            document.addPage(
+              pw.MultiPage(
+                pageFormat: PdfPageFormat.a4,
+                build: (_) => [
+                  pw.Text(
+                    'Lingo Store - Stock Export',
+                    style: pw.TextStyle(
+                      fontSize: 20,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 16),
+                  pw.TableHelper.fromTextArray(
+                    headers: ['Product', 'SKU', 'Barcode', 'Qty', 'Min Qty', 'Cost', 'Price'],
+                    data: products.map((p) => [
+                      p.name,
+                      p.sku ?? '-',
+                      p.barcode ?? '-',
+                      p.quantity.toString(),
+                      p.minimumQuantity.toString(),
+                      p.costPrice.toStringAsFixed(2),
+                      p.sellingPrice.toStringAsFixed(2),
+                    ]).toList(),
+                  ),
+                ],
+              ),
+            );
+            await Printing.sharePdf(
+              bytes: await document.save(),
+              filename: 'lingo_stock.pdf',
             );
           },
           icon: const Icon(Icons.file_download_outlined),
