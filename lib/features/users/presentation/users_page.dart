@@ -51,25 +51,14 @@ class UsersPage extends ConsumerWidget {
             ElevatedButton(
               onPressed: () async {
                 if (name.text.trim().isEmpty || username.text.trim().isEmpty || password.text.isEmpty) return;
-                final db = ref.read(databaseProvider);
                 final actor = ref.read(authUserProvider);
                 if (actor == null) return;
-                final id = await db.into(db.users).insert(
-                  UsersCompanion.insert(
-                    fullName: name.text.trim(),
-                    username: username.text.trim(),
-                    password: password.text,
-                    role: role,
-                  ),
-                );
-                await db.into(db.activityLogs).insert(
-                  ActivityLogsCompanion.insert(
-                    userId: actor.id,
-                    action: 'create',
-                    entity: 'user',
-                    entityId: Value(id),
-                    description: Value('Created user ${username.text.trim()} with role $role'),
-                  ),
+                await ref.read(authRepositoryProvider).createUser(
+                  actorId: actor.id,
+                  fullName: name.text,
+                  username: username.text,
+                  password: password.text,
+                  role: role,
                 );
                 ref.invalidate(usersProvider);
                 if (context.mounted) Navigator.pop(context);
