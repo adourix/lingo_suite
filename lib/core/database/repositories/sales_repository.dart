@@ -210,6 +210,16 @@ class SalesRepository {
           );
         }
       }
+      await db.into(db.activityLogs).insert(
+        ActivityLogsCompanion.insert(
+          userId: request.userId,
+          action: 'create',
+          entity: 'sale',
+          entityId: Value(saleId),
+          description: Value('Created invoice $invoiceNumber'),
+        ),
+      );
+
       return saleId;
     });
   }
@@ -285,6 +295,16 @@ class SalesRepository {
       await (db.delete(
         db.payments,
       )..where((tbl) => tbl.saleId.equals(saleId))).go();
+
+      await db.into(db.activityLogs).insert(
+        ActivityLogsCompanion.insert(
+          userId: sale.userId,
+          action: 'return',
+          entity: 'sale',
+          entityId: Value(saleId),
+          description: Value('Returned invoice ${sale.invoiceNumber}'),
+        ),
+      );
 
       await (db.update(db.sales)..where((tbl) => tbl.id.equals(saleId))).write(
         const SalesCompanion(
