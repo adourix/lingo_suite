@@ -26,9 +26,12 @@ class ProductsTable extends ConsumerWidget {
         border: Border.all(color: AppColors.border),
         boxShadow: AppShadows.card,
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
+      child: Scrollbar(
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
           columnSpacing: 30,
           headingRowHeight: 55,
           dataRowMinHeight: 70,
@@ -44,8 +47,8 @@ class ProductsTable extends ConsumerWidget {
             DataColumn(label: Text("Status")),
             DataColumn(label: Text("Actions")),
           ],
-          rows: products.map((p) {
-            return DataRow(
+            rows: products.map((p) {
+              return DataRow(
               cells: [
                 DataCell(
                   CircleAvatar(
@@ -129,7 +132,9 @@ class ProductsTable extends ConsumerWidget {
                 ),
               ],
             );
-          }).toList(),
+              }).toList(),
+            ),
+          ),
         ),
       ),
     );
