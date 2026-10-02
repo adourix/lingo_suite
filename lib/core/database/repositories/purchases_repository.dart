@@ -24,8 +24,29 @@ class PurchasesRepository {
 
     String? notes,
   }) async {
+    if (items.isEmpty) {
+      throw ArgumentError('Purchase cannot be empty');
+    }
+    if (paid < 0) {
+      throw ArgumentError('Paid amount cannot be negative');
+    }
+    for (final item in items) {
+      if (item.quantity <= 0 || item.unitCost < 0 || item.total < 0) {
+        throw ArgumentError('Invalid purchase item');
+      }
+      final expectedTotal = item.quantity * item.unitCost;
+      if ((item.total - expectedTotal).abs() > 0.01) {
+        throw ArgumentError(
+          'Purchase item total does not match quantity × cost',
+        );
+      }
+    }
+
     return await db.transaction(() async {
       final total = items.fold<double>(0, (sum, item) => sum + item.total);
+      if (paid > total) {
+        throw ArgumentError('Paid amount cannot exceed purchase total');
+      }
 
       final remaining = total - paid;
 
@@ -80,6 +101,18 @@ class PurchasesRepository {
             updatedAt: Value(DateTime.now()),
           ),
         );
+
+        await db
+            .into(db.inventoryMovements)
+            .insert(
+              InventoryMovementsCompanion.insert(
+                productId: item.productId,
+                type: 'purchase',
+                quantity: item.quantity,
+                referenceType: const Value('purchase'),
+                referenceId: Value(purchaseId),
+              ),
+            );
       }
 
       if (remaining > 0) {
