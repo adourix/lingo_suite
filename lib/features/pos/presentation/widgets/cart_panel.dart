@@ -702,7 +702,7 @@ SizedBox(
                   0,
 
 
-              payments: payments,
+              payments: paymentResult.payments,
 
             );
 
