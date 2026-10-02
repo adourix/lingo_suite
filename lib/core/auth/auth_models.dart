@@ -1,4 +1,4 @@
-import '../database/tables/users_table.dart';
+import '../database/app_database.dart';
 
 class AuthUser {
   final int id;
