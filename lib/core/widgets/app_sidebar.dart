@@ -27,6 +27,7 @@ class AppSidebar extends StatelessWidget {
       (index: 3, icon: Icons.people_outline, title: 'Customers', permission: 'customers'),
       (index: 4, icon: Icons.local_shipping_outlined, title: 'Suppliers', permission: 'suppliers'),
       (index: 5, icon: Icons.bar_chart_outlined, title: 'Reports', permission: 'reports'),
+      (index: 6, icon: Icons.history, title: 'Audit Log', permission: 'auditLogs'),
     ];
 
     return Container(
