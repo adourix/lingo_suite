@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
 
 import 'connection.dart';
@@ -62,7 +64,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -73,7 +75,7 @@ class AppDatabase extends _$AppDatabase {
         UsersCompanion.insert(
           fullName: 'Admin',
           username: 'admin',
-          password: '123456',
+          password: sha256.convert(utf8.encode('123456')).toString(),
           role: 'admin',
         ),
       );
@@ -81,10 +83,17 @@ class AppDatabase extends _$AppDatabase {
 
     onUpgrade: (Migrator m, int from, int to) async {
       if (from < 6) {
-        // Add supplier balance column
-        // for old databases
-
         await m.addColumn(suppliers, suppliers.balance);
+      }
+
+      if (from < 7) {
+        final existingUsers = await select(users).get();
+        for (final user in existingUsers) {
+          final hash = sha256.convert(utf8.encode(user.password)).toString();
+          await (update(users)..where((u) => u.id.equals(user.id))).write(
+            UsersCompanion(password: Value(hash)),
+          );
+        }
       }
     },
 
