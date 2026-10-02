@@ -306,11 +306,7 @@ class SalesRepository {
 
   // Invoice Details
 
-  Future<List<SaleItem>> getInvoiceItems(int saleId) {
-    return (db.select(
-      db.saleItems,
-    )..where((tbl) => tbl.saleId.equals(saleId))).get();
-  }
+  Future<List<SaleItem>> getInvoiceItems(int saleId) => getSaleItems(saleId);
 
   // Invoice Payments
 
