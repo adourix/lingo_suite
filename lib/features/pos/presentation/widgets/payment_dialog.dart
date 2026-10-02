@@ -1,108 +1,206 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../models/payment_data.dart';
 
-class PaymentDialog extends ConsumerStatefulWidget {
+class PaymentDialog extends StatefulWidget {
   final double total;
+  final bool allowCredit;
 
-  const PaymentDialog({super.key, required this.total});
+  const PaymentDialog({
+    super.key,
+    required this.total,
+    this.allowCredit = false,
+  });
 
   @override
-  ConsumerState<PaymentDialog> createState() => _PaymentDialogState();
+  State<PaymentDialog> createState() => _PaymentDialogState();
 }
 
-class _PaymentDialogState extends ConsumerState<PaymentDialog> {
-  PaymentMethod method = PaymentMethod.cash;
+class _PaymentLine {
+  PaymentMethod method;
+  final TextEditingController controller;
 
-  final amountController = TextEditingController();
+  _PaymentLine(this.method, double amount)
+      : controller = TextEditingController(text: amount.toStringAsFixed(2));
+
+  void dispose() => controller.dispose();
+}
+
+class _PaymentDialogState extends State<PaymentDialog> {
+  late List<_PaymentLine> lines;
 
   @override
   void initState() {
     super.initState();
-
-    amountController.text = widget.total.toStringAsFixed(2);
+    lines = [_PaymentLine(PaymentMethod.cash, widget.total)];
   }
 
   @override
   void dispose() {
-    amountController.dispose();
-
+    for (final line in lines) {
+      line.dispose();
+    }
     super.dispose();
+  }
+
+  double _amount(_PaymentLine line) =>
+      double.tryParse(line.controller.text.trim()) ?? 0;
+
+  double get _enteredTotal =>
+      lines.fold<double>(0, (sum, line) => sum + _amount(line));
+
+  void _addLine() {
+    setState(() => lines.add(_PaymentLine(PaymentMethod.visa, 0)));
+  }
+
+  void _removeLine(int index) {
+    if (lines.length == 1) return;
+    setState(() {
+      lines[index].dispose();
+      lines.removeAt(index);
+    });
+  }
+
+  void _confirm() {
+    final values = <PaymentData>[];
+    var remaining = widget.total;
+
+    for (final line in lines) {
+      final entered = _amount(line);
+      if (entered <= 0) {
+        _showError('Payment amounts must be greater than zero');
+        return;
+      }
+
+      if (line.method == PaymentMethod.cash) {
+        final applied = entered > remaining ? remaining : entered;
+        if (applied > 0) {
+          values.add(PaymentData(method: line.method, amount: applied));
+          remaining -= applied;
+        }
+      } else {
+        if (entered > remaining + 0.01) {
+          _showError('Payment total cannot exceed invoice total');
+          return;
+        }
+        values.add(PaymentData(method: line.method, amount: entered));
+        remaining -= entered;
+      }
+    }
+
+    if (remaining > 0.01) {
+      _showError(
+        'Remaining amount: ' + remaining.toStringAsFixed(2) + ' EGP',
+      );
+      return;
+    }
+
+    Navigator.pop(context, values);
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text("Payment"),
+      title: const Text('Payment'),
+      content: SizedBox(
+        width: 520,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Total: ' + widget.total.toStringAsFixed(2) + ' EGP'),
+              const SizedBox(height: 16),
+              ...List.generate(lines.length, (index) {
+                final line = lines[index];
+                final methods = PaymentMethod.values
+                    .where((m) =>
+                        widget.allowCredit ||
+                        m != PaymentMethod.customerCredit)
+                    .toList();
 
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-
-          children: [
-            Text("Total: ${widget.total.toStringAsFixed(2)} EGP"),
-
-            const SizedBox(height: 20),
-
-            DropdownButtonFormField<PaymentMethod>(
-              initialValue: method,
-
-              decoration: const InputDecoration(
-                labelText: "Payment Method",
-
-                border: OutlineInputBorder(),
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: DropdownButtonFormField<PaymentMethod>(
+                          initialValue: line.method,
+                          decoration: const InputDecoration(
+                            labelText: 'Method',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: methods.map((method) {
+                            return DropdownMenuItem(
+                              value: method,
+                              child: Text(method.name),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setState(() => line.method = value);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: line.controller,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          onChanged: (_) => setState(() {}),
+                          decoration: InputDecoration(
+                            labelText: line.method == PaymentMethod.cash
+                                ? 'Cash received'
+                                : 'Amount',
+                            border: const OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: lines.length == 1
+                            ? null
+                            : () => _removeLine(index),
+                        icon: const Icon(Icons.delete_outline),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _addLine,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add payment'),
+                ),
               ),
-
-              items: PaymentMethod.values.map((e) {
-                return DropdownMenuItem(value: e, child: Text(e.name));
-              }).toList(),
-
-              onChanged: (value) {
-                if (value == null) return;
-
-                setState(() {
-                  method = value;
-                });
-              },
-            ),
-
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: amountController,
-
-              keyboardType: TextInputType.number,
-
-              decoration: const InputDecoration(
-                labelText: "Amount",
-
-                border: OutlineInputBorder(),
+              const Divider(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Entered'),
+                  Text(_enteredTotal.toStringAsFixed(2) + ' EGP'),
+                ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-
       actions: [
         TextButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-
-          child: const Text("Cancel"),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
         ),
-
         FilledButton(
-          onPressed: () {
-            final amount = double.tryParse(amountController.text);
-
-            if (amount == null) return;
-
-            Navigator.pop(context, PaymentData(method: method, amount: amount));
-          },
-
-          child: const Text("Confirm"),
+          onPressed: _confirm,
+          child: const Text('Confirm'),
         ),
       ],
     );
