@@ -711,21 +711,30 @@ SizedBox(
 
 
 
-        ref.invalidate(
-          totalSalesProvider,
-        );
+        // Refresh all sales/analytics data immediately after checkout.
+        ref.invalidate(totalSalesProvider);
+        ref.invalidate(totalCostProvider);
+        ref.invalidate(profitProvider);
+        ref.invalidate(financialSummaryProvider);
+        ref.invalidate(salesChartProvider);
+        ref.invalidate(profitChartProvider);
+        ref.invalidate(periodInvoicesProvider);
+        ref.invalidate(topProductsProvider);
+        ref.invalidate(customerDebtProvider);
+        ref.invalidate(supplierDebtProvider);
+        ref.invalidate(stockValueProvider);
+        ref.invalidate(stockSellingValueProvider);
 
-        ref.invalidate(
-          profitProvider,
-        );
+        // Refresh dashboard data.
+        ref.invalidate(totalOrdersProvider);
+        ref.invalidate(recentSalesProvider);
+        ref.invalidate(dashboardSalesProvider);
+        ref.invalidate(dashboardOrdersProvider);
+        ref.invalidate(dashboardProfitChartProvider);
 
-        ref.invalidate(
-          financialSummaryProvider,
-        );
-
-        ref.invalidate(
-          productsSearchProvider,
-        );
+        // Refresh product data used by POS/search.
+        ref.invalidate(productsSearchProvider);
+        ref.invalidate(productsProvider);
 
 
 
