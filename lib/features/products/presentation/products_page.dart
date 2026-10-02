@@ -108,42 +108,12 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                           return p.quantity > p.minimumQuantity;
                         }).toList();
                         break;
-
                       case 'Low Stock':
                         filteredProducts = filteredProducts.where((p) {
                           return p.quantity > 0 &&
                               p.quantity <= p.minimumQuantity;
                         }).toList();
                         break;
-
-                      case 'Out of Stock':
-                        filteredProducts = filteredProducts.where((p) {
-                          return p.quantity == 0;
-                        }).toList();
-                        break;
-                    }
-                  }
-                  if (_selectedCategory != null) {
-                    filteredProducts = filteredProducts.where((p) {
-                      return p.categoryId == _selectedCategory;
-                    }).toList();
-                  }
-
-                  if (_stockFilter != null && _stockFilter != 'All') {
-                    switch (_stockFilter) {
-                      case 'In Stock':
-                        filteredProducts = filteredProducts.where((p) {
-                          return p.quantity > p.minimumQuantity;
-                        }).toList();
-                        break;
-
-                      case 'Low Stock':
-                        filteredProducts = filteredProducts.where((p) {
-                          return p.quantity > 0 &&
-                              p.quantity <= p.minimumQuantity;
-                        }).toList();
-                        break;
-
                       case 'Out of Stock':
                         filteredProducts = filteredProducts.where((p) {
                           return p.quantity == 0;
