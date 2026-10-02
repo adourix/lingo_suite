@@ -10,6 +10,7 @@ class ProductSearchBar extends ConsumerWidget {
   const ProductSearchBar({
     super.key,
     required this.controller,
+    required this.barcodeController,
     required this.onChanged,
     required this.onCategoryChanged,
     required this.onStockChanged,
@@ -17,6 +18,7 @@ class ProductSearchBar extends ConsumerWidget {
   });
 
   final TextEditingController controller;
+  final TextEditingController barcodeController;
   final ValueChanged<String> onChanged;
   final ValueChanged<String> onBarcodeSubmitted;
   final ValueChanged<int?> onCategoryChanged;
@@ -47,6 +49,7 @@ class ProductSearchBar extends ConsumerWidget {
         Expanded(
           flex: 2,
           child: TextField(
+            controller: barcodeController,
             autofocus: true,
             decoration: InputDecoration(
               hintText: 'Scan barcode...',
