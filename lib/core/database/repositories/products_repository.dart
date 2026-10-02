@@ -53,6 +53,20 @@ class ProductsRepository {
   }
 
   Future<int> update(int id, ProductsCompanion product) {
+    if (product.quantity.present && product.quantity.value < 0) {
+      throw ArgumentError('Stock quantity cannot be negative');
+    }
+    if (product.minimumQuantity.present &&
+        product.minimumQuantity.value < 0) {
+      throw ArgumentError('Minimum quantity cannot be negative');
+    }
+    if (product.costPrice.present && product.costPrice.value < 0) {
+      throw ArgumentError('Cost price cannot be negative');
+    }
+    if (product.sellingPrice.present && product.sellingPrice.value < 0) {
+      throw ArgumentError('Selling price cannot be negative');
+    }
+
     return (db.update(db.products)..where((tbl) => tbl.id.equals(id)))
         .write(product);
   }
