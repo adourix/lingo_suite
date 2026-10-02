@@ -14,34 +14,79 @@ class ReturnInvoiceButton extends ConsumerWidget {
         final controller = TextEditingController();
         final repo = ref.read(salesRepositoryProvider);
 
-        if (!context.mounted) return;
-        showDialog(
+        final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Return Invoice'),
+            title: const Text('Find Invoice'),
             content: TextField(
               controller: controller,
+              autofocus: true,
               decoration: const InputDecoration(
                 hintText: 'Invoice number',
               ),
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(context, false),
                 child: const Text('Cancel'),
               ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Search'),
+              ),
+            ],
+          ),
+        );
+
+        if (confirmed != true) return;
+
+        final sale = await repo.getSaleByInvoiceNumber(controller.text.trim());
+
+        if (!context.mounted) return;
+
+        if (sale == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Invoice not found')),
+          );
+          return;
+        }
+
+        final shouldReturn = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(sale.invoiceNumber),
+            content: Text(
+              'Total: ${sale.total}\n\nConfirm returning this invoice?',
+            ),
+            actions: [
               TextButton(
-                onPressed: () async {
-                  final sale = await repo.getSaleByInvoiceNumber(controller.text);
-                  if (sale == null) return;
-                  await repo.returnSale(sale.id);
-                  if (context.mounted) Navigator.pop(context);
-                },
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
                 child: const Text('Return'),
               ),
             ],
           ),
         );
+
+        if (shouldReturn != true) return;
+
+        try {
+          await repo.returnSale(sale.id);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Invoice returned successfully')),
+            );
+          }
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(e.toString())),
+            );
+          }
+        }
       },
     );
   }
