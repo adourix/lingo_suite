@@ -6,13 +6,13 @@ import '../database/app_database.dart';
 
 class ThermalPrinterMacService {
   static const String printerName = "BIXOLON SRP-330II";
+  static const String cupsQueueName = "BIXOLON_SRP_330II";
 
   static Future<void> printInvoice({
     required Sale sale,
     required List<SaleItem> items,
   }) async {
-    final queueName = await _resolvePrinterName();
-    await _printMac(sale, items, queueName);
+    await _printMac(sale, items, cupsQueueName);
   }
 
   static Future<void> _printMac(
@@ -131,50 +131,4 @@ class ThermalPrinterMacService {
     }
   }
 
-  static Future<String> _resolvePrinterName() async {
-    final result = await Process.run(
-      "/usr/bin/lpstat",
-      ["-p"],
-      environment: {"LANG": "C", "LC_ALL": "C"},
-    );
-
-    if (result.exitCode != 0) {
-      throw Exception(
-        "Unable to query Mac printers: ${result.stderr.toString().trim()}",
-      );
-    }
-
-    final printers = result.stdout
-        .toString()
-        .split(RegExp(r'\r?\n'))
-        .map((line) {
-          final match =
-              RegExp(r'^printer\s+([^\s]+)').firstMatch(line.trim());
-          return match?.group(1);
-        })
-        .whereType<String>()
-        .toList();
-
-    String normalize(String value) =>
-        value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
-
-    final wanted = normalize(printerName);
-
-    final exact =
-        printers.where((name) => normalize(name) == wanted).firstOrNull;
-
-    if (exact != null) return exact;
-
-    final partial = printers.where((name) {
-      final normalized = normalize(name);
-      return normalized.contains(wanted) || wanted.contains(normalized);
-    }).firstOrNull;
-
-    if (partial != null) return partial;
-
-    throw Exception(
-      "Printer not found: $printerName\n"
-      "CUPS queues: ${printers.isEmpty ? 'none' : printers.join(', ')}",
-    );
-  }
 }
