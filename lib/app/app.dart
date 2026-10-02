@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../core/widgets/app_shell.dart';
+import 'auth_gate.dart';
 import 'theme/app_theme.dart';
 
 class LingoSuiteApp extends StatelessWidget {
@@ -9,10 +9,10 @@ class LingoSuiteApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-  debugShowCheckedModeBanner: false,
-  title: 'Lingo Store',
-  theme: AppTheme.light,
-  home: const AppShell(),
-);
+      debugShowCheckedModeBanner: false,
+      title: 'Lingo Store',
+      theme: AppTheme.light,
+      home: const AuthGate(),
+    );
   }
 }
