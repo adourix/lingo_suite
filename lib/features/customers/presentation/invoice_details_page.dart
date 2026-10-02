@@ -5,6 +5,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/repositories/sales_delete_extension.dart';
 import '../../../core/database/repositories/sales_return_extension.dart';
 import '../../../core/providers/invoices_provider.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/sales_repository_provider.dart';
 import '../../../core/providers/sale_items_provider.dart';
 
@@ -28,7 +29,10 @@ class InvoiceDetailsPage extends ConsumerWidget {
 
     if (confirm != true) return;
 
-    await ref.read(salesRepositoryProvider).returnSaleCompletely(invoice.id);
+    await ref.read(salesRepositoryProvider).returnSaleCompletely(
+      invoice.id,
+      ref.read(authUserProvider)!.id,
+    );
     ref.invalidate(invoicesProvider);
     ref.invalidate(saleItemsProvider(invoice.id));
 
@@ -50,7 +54,10 @@ class InvoiceDetailsPage extends ConsumerWidget {
 
     if (confirm != true) return;
 
-    await ref.read(salesRepositoryProvider).deleteSaleCompletely(invoice.id);
+    await ref.read(salesRepositoryProvider).deleteSaleCompletely(
+      invoice.id,
+      ref.read(authUserProvider)!.id,
+    );
     ref.invalidate(invoicesProvider);
 
     if (context.mounted) Navigator.pop(context);
