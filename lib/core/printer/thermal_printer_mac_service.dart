@@ -113,7 +113,7 @@ class ThermalPrinterMacService {
     await file.writeAsBytes(bytes);
 
     final result = await Process.run(
-      "lp",
+      "/usr/bin/lp",
       ["-d", queueName, "-o", "raw", file.path],
       environment: {"LANG": "C", "LC_ALL": "C"},
     );
@@ -130,7 +130,7 @@ class ThermalPrinterMacService {
 
   static Future<String> _resolvePrinterName() async {
     final result = await Process.run(
-      "lpstat",
+      "/usr/bin/lpstat",
       ["-p"],
       environment: {"LANG": "C", "LC_ALL": "C"},
     );
