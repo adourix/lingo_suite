@@ -244,7 +244,9 @@ class SalesRepository {
           db.customers,
         )..where((tbl) => tbl.id.equals(customer.id))).write(
           CustomersCompanion(
-            balance: Value(customer.balance - sale.remaining),
+            balance: Value(
+              (customer.balance - sale.remaining).clamp(0, double.infinity),
+            ),
             updatedAt: Value(DateTime.now()),
           ),
         );
