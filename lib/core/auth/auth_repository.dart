@@ -46,6 +46,13 @@ class AuthRepository {
           ),
         );
   }
+  Future<void> _requireAdmin(int actorId) async {
+    final actor = await (db.select(db.users)..where((u) => u.id.equals(actorId))).getSingleOrNull();
+    if (actor == null || !actor.isActive || actor.role.toLowerCase() != 'admin') {
+      throw StateError('Admin permission required');
+    }
+  }
+
   Future<void> updateUser({
     required int userId,
     required int actorId,
@@ -54,6 +61,7 @@ class AuthRepository {
     required String role,
     required bool isActive,
   }) async {
+    await _requireAdmin(actorId);
     final existing = await (db.select(db.users)..where((u) => u.id.equals(userId))).getSingleOrNull();
     if (existing == null) throw StateError('User not found');
 
@@ -82,13 +90,14 @@ class AuthRepository {
     required int actorId,
     required String newPassword,
   }) async {
-    if (newPassword.isEmpty) throw ArgumentError('Password cannot be empty');
+    await _requireAdmin(actorId);
+    if (newPassword.length < 6) throw ArgumentError('Password cannot be empty');
 
     final user = await (db.select(db.users)..where((u) => u.id.equals(userId))).getSingleOrNull();
     if (user == null) throw StateError('User not found');
 
     await (db.update(db.users)..where((u) => u.id.equals(userId))).write(
-      UsersCompanion(password: Value(newPassword)),
+      UsersCompanion(password: Value(_hash(newPassword))),
     );
 
     await db.into(db.activityLogs).insert(
