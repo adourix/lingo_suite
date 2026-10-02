@@ -23,13 +23,16 @@ class ProductsRepository {
 
   Future<List<Product>> search(String keyword) {
     final query = keyword.trim();
+    if (query.isEmpty) return getAll();
 
     return (db.select(db.products)
           ..where(
             (tbl) =>
                 tbl.isActive.equals(true) &
                 (tbl.name.like('%$query%') |
+                    tbl.sku.equals(query) |
                     tbl.sku.like('%$query%') |
+                    tbl.barcode.equals(query) |
                     tbl.barcode.like('%$query%')),
           )
           ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]))
