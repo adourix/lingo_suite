@@ -53,15 +53,23 @@ class UsersPage extends ConsumerWidget {
                 if (name.text.trim().isEmpty || username.text.trim().isEmpty || password.text.isEmpty) return;
                 final actor = ref.read(authUserProvider);
                 if (actor == null) return;
-                await ref.read(authRepositoryProvider).createUser(
-                  actorId: actor.id,
-                  fullName: name.text,
-                  username: username.text,
-                  password: password.text,
-                  role: role,
-                );
-                ref.invalidate(usersProvider);
-                if (context.mounted) Navigator.pop(context);
+                try {
+                  await ref.read(authRepositoryProvider).createUser(
+                    actorId: actor.id,
+                    fullName: name.text,
+                    username: username.text,
+                    password: password.text,
+                    role: role,
+                  );
+                  ref.invalidate(usersProvider);
+                  if (context.mounted) Navigator.pop(context);
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: ' + e.toString())),
+                    );
+                  }
+                }
               },
               child: const Text('Create'),
             ),
