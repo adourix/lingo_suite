@@ -32,7 +32,7 @@ class SalesRepository {
       nextNumber = (int.tryParse(match?.group(1) ?? '') ?? 0) + 1;
     }
 
-    return '$prefix${nextNumber.toString().padLeft(4, '0')}-${now.microsecond.toString().padLeft(6, '0')}';
+    return '$prefix${nextNumber.toString().padLeft(4, '0')}';
   }
 
   Future<int> checkout(CheckoutRequest request) async {
