@@ -39,6 +39,19 @@ class ProductsHeader extends ConsumerWidget {
                 return '"${value.replaceAll('"', '""')}"';
               }
 
+              final totalQuantity = products.fold<int>(
+                0,
+                (sum, p) => sum + p.quantity,
+              );
+              final totalPrice = products.fold<double>(
+                0,
+                (sum, p) => sum + (p.quantity * p.sellingPrice),
+              );
+              final totalCost = products.fold<double>(
+                0,
+                (sum, p) => sum + (p.quantity * p.costPrice),
+              );
+
               final rows = <String>[
                 [
                   'Product',
@@ -60,6 +73,16 @@ class ProductsHeader extends ConsumerWidget {
                     p.sellingPrice.toStringAsFixed(2),
                   ].map(csvEscape).join(','),
                 ),
+                '',
+                [
+                  'TOTAL',
+                  '',
+                  '',
+                  totalQuantity.toString(),
+                  '',
+                  totalCost.toStringAsFixed(2),
+                  totalPrice.toStringAsFixed(2),
+                ].map(csvEscape).join(','),
               ];
 
               final csvBytes = utf8.encode(rows.join('\r\n'));
