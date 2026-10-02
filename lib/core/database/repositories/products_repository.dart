@@ -67,6 +67,10 @@ class ProductsRepository {
   }
 
   Future<void> increaseStock(int id, int quantity) async {
+    if (quantity <= 0) {
+      throw ArgumentError.value(quantity, 'quantity', 'must be greater than zero');
+    }
+
     final product = await getById(id);
     if (product == null) return;
 
@@ -77,8 +81,20 @@ class ProductsRepository {
   }
 
   Future<void> decreaseStock(int id, int quantity) async {
+    if (quantity <= 0) {
+      throw ArgumentError.value(quantity, 'quantity', 'must be greater than zero');
+    }
+
     final product = await getById(id);
     if (product == null) return;
+
+    if (quantity > product.quantity) {
+      throw ArgumentError.value(
+        quantity,
+        'quantity',
+        'cannot exceed current stock',
+      );
+    }
 
     await update(
       id,
