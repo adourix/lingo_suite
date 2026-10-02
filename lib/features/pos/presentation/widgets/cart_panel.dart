@@ -742,45 +742,25 @@ SizedBox(
 
 
 
-        if(sale != null){
+        String? printerError;
 
-          Future(() async {
-
-            try {
-
-              if(Platform.isWindows){
-
-                await ThermalPrinterService.printInvoice(
-                  sale: sale,
-                  items: items,
-                );
-
-              }
-
-
-              else if(Platform.isMacOS){
-
-                await ThermalPrinterMacService.printInvoice(
-                  sale: sale,
-                  items: items,
-                );
-
-              }
-
-
-            }
-
-            catch(e){
-
-              debugPrint(
-                "Printer Error: $e",
+        if (sale != null) {
+          try {
+            if (Platform.isWindows) {
+              await ThermalPrinterService.printInvoice(
+                sale: sale,
+                items: items,
               );
-
+            } else if (Platform.isMacOS) {
+              await ThermalPrinterMacService.printInvoice(
+                sale: sale,
+                items: items,
+              );
             }
-
-
-          });
-
+          } catch (e) {
+            printerError = e.toString();
+            debugPrint("Printer Error: $e");
+          }
         }
 
 
@@ -798,11 +778,13 @@ SizedBox(
 
             SnackBar(
               content: Text(
-                paymentResult.change > 0
-                    ? "Sale completed • Change: " +
-                        paymentResult.change.toStringAsFixed(2) +
-                        " EGP"
-                    : "Sale completed",
+                printerError != null
+                    ? "Sale completed • Printing failed: $printerError"
+                    : paymentResult.change > 0
+                        ? "Sale completed • Change: " +
+                            paymentResult.change.toStringAsFixed(2) +
+                            " EGP"
+                        : "Sale completed",
               ),
             ),
 
