@@ -130,7 +130,7 @@ class SalesRepository {
 
                 unitPrice: item.price,
 
-                costPrice: Value(item.product?.costPrice ?? 0),
+                costPrice: Value(item.product == null ? 0 : freshProducts[item.product!.id]!.costPrice),
 
                 discount: Value(item.discount),
 
