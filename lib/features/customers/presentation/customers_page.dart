@@ -126,15 +126,15 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
 
                       return Card(
                         child: ListTile(
-                          onTap: () {
-                            Navigator.push(
+                          onTap: () async {
+                            await Navigator.push<bool>(
                               context,
-
                               MaterialPageRoute(
                                 builder: (_) =>
                                     CustomerDetailsPage(customer: customer),
                               ),
                             );
+                            if (mounted) setState(() {});
                           },
 
                           leading: const CircleAvatar(
