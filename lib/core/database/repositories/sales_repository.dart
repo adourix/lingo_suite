@@ -77,7 +77,7 @@ class SalesRepository {
     final effectivePaid = paid - creditAmount;
     final isCreditSale = creditAmount > 0;
 
-    if (paid > total || effectivePaid < 0 || (creditAmount > 0 && total - effectivePaid != creditAmount)) {
+    if (paid > total || effectivePaid < 0 || (creditAmount > 0 && (total - effectivePaid - creditAmount).abs() > 0.01)) {
       throw ArgumentError('Invalid payment total');
     }
 
