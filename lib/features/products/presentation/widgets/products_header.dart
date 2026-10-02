@@ -23,10 +23,7 @@ class ProductsHeader extends ConsumerWidget {
             children: [
               Text('Products', style: AppTextStyles.h1),
               const SizedBox(height: 6),
-              Text(
-                'Manage your products, prices and inventory.',
-                style: AppTextStyles.body,
-              ),
+              Text('Manage your products, prices and inventory.', style: AppTextStyles.body),
             ],
           ),
         ),
@@ -36,65 +33,40 @@ class ProductsHeader extends ConsumerWidget {
               final products = await ref.read(productsProvider.future);
 
               String csvEscape(String value) {
-                return '"${value.replaceAll('"', '""')}"';
+                return '"' + value.replaceAll('"', '""') + '"';
               }
 
-              final totalQuantity = products.fold<int>(
-                0,
-                (sum, p) => sum + p.quantity,
-              );
-              final totalPrice = products.fold<double>(
-                0,
-                (sum, p) => sum + (p.quantity * p.sellingPrice),
-              );
-              final totalCost = products.fold<double>(
-                0,
-                (sum, p) => sum + (p.quantity * p.costPrice),
-              );
+              final totalQuantity = products.fold<int>(0, (sum, p) => sum + p.quantity);
+              final totalPrice = products.fold<double>(0, (sum, p) => sum + (p.quantity * p.sellingPrice));
+              final totalCost = products.fold<double>(0, (sum, p) => sum + (p.quantity * p.costPrice));
+              final totalProfit = totalPrice - totalCost;
 
               final rows = <String>[
                 [
-                  'Product',
-                  'SKU',
-                  'Barcode',
-                  'Quantity',
-                  'Minimum Quantity',
-                  'Cost Price',
-                  'Selling Price',
+                  'Product', 'SKU', 'Barcode', 'Quantity', 'Minimum Quantity',
+                  'Cost Price', 'Selling Price', 'Profit',
                 ].map(csvEscape).join(','),
-                ...products.map(
-                  (p) => [
-                    p.name,
-                    p.sku ?? '',
-                    p.barcode ?? '',
-                    p.quantity.toString(),
-                    p.minimumQuantity.toString(),
-                    p.costPrice.toStringAsFixed(2),
-                    p.sellingPrice.toStringAsFixed(2),
-                  ].map(csvEscape).join(','),
-                ),
+                ...products.map((p) {
+                  final profit = (p.sellingPrice - p.costPrice) * p.quantity;
+                  return [
+                    p.name, p.sku ?? '', p.barcode ?? '', p.quantity.toString(),
+                    p.minimumQuantity.toString(), p.costPrice.toStringAsFixed(2),
+                    p.sellingPrice.toStringAsFixed(2), profit.toStringAsFixed(2),
+                  ].map(csvEscape).join(',');
+                }),
                 '',
                 [
-                  'TOTAL',
-                  '',
-                  '',
-                  totalQuantity.toString(),
-                  '',
-                  totalCost.toStringAsFixed(2),
-                  totalPrice.toStringAsFixed(2),
+                  'TOTAL', '', '', totalQuantity.toString(), '',
+                  totalCost.toStringAsFixed(2), totalPrice.toStringAsFixed(2),
+                  totalProfit.toStringAsFixed(2),
                 ].map(csvEscape).join(','),
               ];
 
               final csvBytes = utf8.encode(rows.join('\r\n'));
-
               await SharePlus.instance.share(
                 ShareParams(
                   files: [
-                    XFile.fromData(
-                      csvBytes,
-                      name: 'lingo_stock.csv',
-                      mimeType: 'text/csv',
-                    ),
+                    XFile.fromData(csvBytes, name: 'lingo_stock.csv', mimeType: 'text/csv'),
                   ],
                   text: 'Lingo Store Stock Export',
                 ),
@@ -102,7 +74,7 @@ class ProductsHeader extends ConsumerWidget {
             } catch (e) {
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Export failed: $e')),
+                SnackBar(content: Text('Export failed: ' + e.toString())),
               );
             }
           },
@@ -112,21 +84,13 @@ class ProductsHeader extends ConsumerWidget {
         const SizedBox(width: AppSpacing.md),
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 16,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
           ),
           onPressed: () {
-            showDialog(
-              context: context,
-              builder: (_) => const AddProductDialog(),
-            );
+            showDialog(context: context, builder: (_) => const AddProductDialog());
           },
           icon: const Icon(Icons.add),
           label: const Text('Add Product'),
