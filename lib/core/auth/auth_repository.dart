@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
 
 import '../database/app_database.dart';
@@ -6,13 +8,15 @@ import 'auth_models.dart';
 class AuthRepository {
   final AppDatabase db;
 
+  String _hash(String value) => sha256.convert(utf8.encode(value)).toString();
+
   AuthRepository(this.db);
 
   Future<AuthUser?> login(String username, String password) async {
     final user = await (db.select(db.users)
           ..where((u) =>
               u.username.equals(username.trim()) &
-              u.password.equals(password) &
+              u.password.equals(_hash(password)) &
               u.isActive.equals(true)))
         .getSingleOrNull();
 
