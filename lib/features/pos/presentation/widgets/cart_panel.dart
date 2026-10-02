@@ -651,25 +651,21 @@ SizedBox(
     : () async {
 
 
-      final payment =
-          await showDialog<PaymentData>(
+      final paymentResult =
+          await showDialog<PaymentResult>(
 
             context: context,
 
-
-            builder: (_) =>
-                PaymentDialog(
-
-                  total:
-                    notifier.subtotal - discount,
-
-                ),
+            builder: (_) => PaymentDialog(
+              total: notifier.subtotal - discount,
+              allowCredit: selectedCustomer != null,
+            ),
 
           );
 
 
 
-      if(payment == null) return;
+      if(paymentResult == null || paymentResult.payments.isEmpty) return;
 
 
 
