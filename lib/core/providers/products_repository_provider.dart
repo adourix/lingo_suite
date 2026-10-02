@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../auth/auth_models.dart';
 import '../database/repositories/products_repository.dart';
 import 'auth_provider.dart';
 import 'database_provider.dart';
