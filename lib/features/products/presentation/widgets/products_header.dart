@@ -1,9 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../app/theme/app_colors.dart';
@@ -65,16 +62,17 @@ class ProductsHeader extends ConsumerWidget {
                 ),
               ];
 
-              final directory = await getTemporaryDirectory();
-              final file = File('${directory.path}/lingo_stock.csv');
-              await file.writeAsString(
-                rows.join('\r\n'),
-                encoding: utf8,
-              );
+              final csvBytes = utf8.encode(rows.join('\r\n'));
 
               await SharePlus.instance.share(
                 ShareParams(
-                  files: [XFile(file.path)],
+                  files: [
+                    XFile.fromData(
+                      csvBytes,
+                      name: 'lingo_stock.csv',
+                      mimeType: 'text/csv',
+                    ),
+                  ],
                   text: 'Lingo Store Stock Export',
                 ),
               );
