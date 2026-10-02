@@ -295,45 +295,33 @@ class AnalyticsRepository {
     required DateTime from,
     required DateTime to,
   }) async {
-    final result = await db
-        .customSelect(
-          '''
-    SELECT
-      DATE(s.sale_date) AS day,
-
-      s.total AS sales,
-
-      (
-        SELECT COALESCE(SUM(si.quantity * si.cost_price),0)
-        FROM sale_items si
-        WHERE si.sale_id = s.id
-      ) AS cost
-
-    FROM sales s
-
-    WHERE s.sale_date >= ?
-    AND s.sale_date <= ?
-    AND s.is_returned = 0
-
-    ORDER BY s.sale_date
-
-    ''',
-          variables: [Variable.withDateTime(from), Variable.withDateTime(to)],
-        )
-        .get();
+    final result = await db.customSelect(
+      '''
+      SELECT
+        DATE(s.sale_date) AS day,
+        COALESCE(SUM(s.total), 0) AS sales,
+        COALESCE(SUM((
+          SELECT SUM(si.quantity * si.cost_price)
+          FROM sale_items si
+          WHERE si.sale_id = s.id
+        )), 0) AS cost
+      FROM sales s
+      WHERE s.sale_date >= ?
+        AND s.sale_date <= ?
+        AND s.is_returned = 0
+      GROUP BY DATE(s.sale_date)
+      ORDER BY DATE(s.sale_date)
+      ''',
+      variables: [Variable.withDateTime(from), Variable.withDateTime(to)],
+    ).get();
 
     return result.map((row) {
       final sales = row.read<double?>('sales') ?? 0;
-
       final cost = row.read<double?>('cost') ?? 0;
-
       return {
         "day": row.read<String?>('day') ?? "",
-
         "sales": sales,
-
         "cost": cost,
-
         "profit": sales - cost,
       };
     }).toList();
