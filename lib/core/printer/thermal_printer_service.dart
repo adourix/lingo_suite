@@ -43,7 +43,7 @@ class ThermalPrinterService {
   }
 
   static Future<String> _findPrinterName() async {
-    final result = await Process.run("powershell", [
+    final result = await Process.run(r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", [
       "-NoProfile",
       "-Command",
       r'''
