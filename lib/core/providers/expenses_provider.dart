@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../database/app_database.dart';
 import '../database/repositories/expenses_repository.dart';
+import 'auth_provider.dart';
 
 import 'database_provider.dart';
 import 'analytics_provider.dart';
@@ -10,8 +11,9 @@ import 'analytics_provider.dart';
 
 final expensesRepositoryProvider = Provider<ExpensesRepository>((ref) {
   final db = ref.watch(databaseProvider);
+  final user = ref.watch(authUserProvider);
 
-  return ExpensesRepository(db);
+  return ExpensesRepository(db, actorId: user?.id);
 });
 
 // All Expenses Stream
