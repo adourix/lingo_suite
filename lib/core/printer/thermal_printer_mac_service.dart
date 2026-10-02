@@ -112,13 +112,11 @@ class ThermalPrinterMacService {
     final file = File("/tmp/lingo_invoice.raw");
     await file.writeAsBytes(bytes);
 
-    final result = await Process.run("lp", [
-      "-d",
-      queueName,
-      "-o",
-      "raw",
-      file.path,
-    ]);
+    final result = await Process.run(
+      "lp",
+      ["-d", queueName, "-o", "raw", file.path],
+      environment: {"LANG": "C", "LC_ALL": "C"},
+    );
 
     if (result.exitCode != 0) {
       final error = result.stderr.toString().trim();
@@ -131,7 +129,11 @@ class ThermalPrinterMacService {
   }
 
   static Future<String> _resolvePrinterName() async {
-    final result = await Process.run("lpstat", ["-p"]);
+    final result = await Process.run(
+      "lpstat",
+      ["-p"],
+      environment: {"LANG": "C", "LC_ALL": "C"},
+    );
 
     if (result.exitCode != 0) {
       throw Exception(
