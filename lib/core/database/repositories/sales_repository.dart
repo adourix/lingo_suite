@@ -12,7 +12,6 @@ class SalesRepository {
   Future<String> generateInvoiceNumber() async {
     final now = DateTime.now();
     final date = DateFormat('yyyyMMdd').format(now);
-
     final prefix = 'INV-$date-';
 
     final lastInvoice =
@@ -25,13 +24,10 @@ class SalesRepository {
     if (lastInvoice == null) {
       return '${prefix}0001';
     }
+
     final parts = lastInvoice.invoiceNumber.split('-');
-
     final lastNumber = int.tryParse(parts.last) ?? 0;
-
-    final nextNumber = (lastNumber + 1).toString().padLeft(4, '0');
-
-    return '$prefix$nextNumber';
+    return '$prefix${(lastNumber + 1).toString().padLeft(4, '0')}-${now.microsecond.toString().padLeft(6, '0')}';
   }
 
   Future<int> checkout(CheckoutRequest request) async {
