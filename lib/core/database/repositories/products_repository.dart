@@ -22,14 +22,17 @@ class ProductsRepository {
   }
 
   Future<List<Product>> search(String keyword) {
+    final query = keyword.trim();
+
     return (db.select(db.products)
           ..where(
             (tbl) =>
                 tbl.isActive.equals(true) &
-                (tbl.name.like('%$keyword%') |
-                    tbl.sku.like('%$keyword%') |
-                    tbl.barcode.like('%$keyword%')),
-          ))
+                (tbl.name.like('%$query%') |
+                    tbl.sku.like('%$query%') |
+                    tbl.barcode.like('%$query%')),
+          )
+          ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]))
         .get();
   }
 
