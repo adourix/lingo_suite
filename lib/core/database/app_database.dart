@@ -64,7 +64,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -89,6 +89,40 @@ class AppDatabase extends _$AppDatabase {
       if (from < 7) {
         final existingUsers = await select(users).get();
         for (final user in existingUsers) {
+          final isSha256 =
+              RegExp(r'^[a-fA-F0-9]{64}
+    },
+
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON;');
+    },
+  );
+}
+).hasMatch(user.password);
+          if (isSha256) continue;
+
+          final hash = sha256.convert(utf8.encode(user.password)).toString();
+          await (update(users)..where((u) => u.id.equals(user.id))).write(
+            UsersCompanion(password: Value(hash)),
+          );
+        }
+      }
+
+      if (from < 8) {
+        final existingUsers = await select(users).get();
+        for (final user in existingUsers) {
+          final isSha256 =
+              RegExp(r'^[a-fA-F0-9]{64}
+    },
+
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON;');
+    },
+  );
+}
+).hasMatch(user.password);
+          if (isSha256) continue;
+
           final hash = sha256.convert(utf8.encode(user.password)).toString();
           await (update(users)..where((u) => u.id.equals(user.id))).write(
             UsersCompanion(password: Value(hash)),
