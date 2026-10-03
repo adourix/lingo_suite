@@ -13,28 +13,43 @@ class AuthRepository {
   AuthRepository(this.db);
 
   Future<AuthUser?> login(String username, String password) async {
+    final normalizedUsername = username.trim();
     final user = await (db.select(db.users)
           ..where((u) =>
-              u.username.equals(username.trim()) &
-              u.password.equals(_hash(password)) &
+              u.username.equals(normalizedUsername) &
               u.isActive.equals(true)))
         .getSingleOrNull();
 
     if (user == null) return null;
 
+    final passwordHash = _hash(password);
+    final isSha256 =
+        RegExp(r'^[a-fA-F0-9]{64}$').hasMatch(user.password);
+
+    final passwordMatches = isSha256
+        ? user.password.toLowerCase() == passwordHash
+        : user.password == password;
+
+    if (!passwordMatches) return null;
+
+    if (!isSha256) {
+      await (db.update(db.users)..where((u) => u.id.equals(user.id))).write(
+        UsersCompanion(password: Value(passwordHash)),
+      );
+    }
+
     await db.into(db.activityLogs).insert(
-          ActivityLogsCompanion.insert(
-            userId: user.id,
-            action: 'login',
-            entity: 'user',
-            entityId: Value(user.id),
-            description: Value('User logged in'),
-          ),
-        );
+      ActivityLogsCompanion.insert(
+        userId: user.id,
+        action: 'login',
+        entity: 'user',
+        entityId: Value(user.id),
+        description: Value('User logged in'),
+      ),
+    );
 
     return AuthUser.fromUser(user);
   }
-
   Future<void> logout(AuthUser user) async {
     await db.into(db.activityLogs).insert(
           ActivityLogsCompanion.insert(
