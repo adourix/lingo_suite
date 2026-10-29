@@ -8,12 +8,13 @@ import 'auth_models.dart';
 class AuthRepository {
   final AppDatabase db;
 
-  String _hash(String value) => sha256.convert(utf8.encode(value)).toString();
-
   AuthRepository(this.db);
+
+  String _hash(String value) => sha256.convert(utf8.encode(value)).toString();
 
   Future<AuthUser?> login(String username, String password) async {
     final normalizedUsername = username.trim();
+
     final user = await (db.select(db.users)
           ..where((u) =>
               u.username.equals(normalizedUsername) &
@@ -23,16 +24,15 @@ class AuthRepository {
     if (user == null) return null;
 
     final passwordHash = _hash(password);
-    final isSha256 =
-        RegExp(r'^[a-fA-F0-9]{64}$').hasMatch(user.password);
 
-    final passwordMatches = isSha256
-        ? user.password.toLowerCase() == passwordHash
-        : user.password == password;
+    // Support both existing plaintext accounts and SHA-256 accounts.
+    // Successful legacy logins are upgraded immediately to SHA-256.
+    final matchesHash = user.password.toLowerCase() == passwordHash;
+    final matchesLegacy = user.password == password;
 
-    if (!passwordMatches) return null;
+    if (!matchesHash && !matchesLegacy) return null;
 
-    if (!isSha256) {
+    if (!matchesHash) {
       await (db.update(db.users)..where((u) => u.id.equals(user.id))).write(
         UsersCompanion(password: Value(passwordHash)),
       );
@@ -50,19 +50,24 @@ class AuthRepository {
 
     return AuthUser.fromUser(user);
   }
+
   Future<void> logout(AuthUser user) async {
     await db.into(db.activityLogs).insert(
-          ActivityLogsCompanion.insert(
-            userId: user.id,
-            action: 'logout',
-            entity: 'user',
-            entityId: Value(user.id),
-            description: Value('User logged out'),
-          ),
-        );
+      ActivityLogsCompanion.insert(
+        userId: user.id,
+        action: 'logout',
+        entity: 'user',
+        entityId: Value(user.id),
+        description: Value('User logged out'),
+      ),
+    );
   }
+
   Future<void> _requireAdmin(int actorId) async {
-    final actor = await (db.select(db.users)..where((u) => u.id.equals(actorId))).getSingleOrNull();
+    final actor = await (db.select(db.users)
+          ..where((u) => u.id.equals(actorId)))
+        .getSingleOrNull();
+
     if (actor == null || !actor.isActive || actor.role.toLowerCase() != 'admin') {
       throw StateError('Admin permission required');
     }
@@ -76,9 +81,13 @@ class AuthRepository {
     required String role,
   }) async {
     await _requireAdmin(actorId);
-    if (fullName.trim().isEmpty || username.trim().isEmpty || password.length < 6) {
+
+    if (fullName.trim().isEmpty ||
+        username.trim().isEmpty ||
+        password.length < 6) {
       throw ArgumentError('Invalid user data');
     }
+
     final id = await db.into(db.users).insert(
       UsersCompanion.insert(
         fullName: fullName.trim(),
@@ -87,15 +96,19 @@ class AuthRepository {
         role: role,
       ),
     );
+
     await db.into(db.activityLogs).insert(
       ActivityLogsCompanion.insert(
         userId: actorId,
         action: 'create',
         entity: 'user',
         entityId: Value(id),
-        description: Value('Created user ' + username.trim() + ' with role ' + role),
+        description: Value(
+          'Created user ${username.trim()} with role $role',
+        ),
       ),
     );
+
     return id;
   }
 
@@ -108,7 +121,11 @@ class AuthRepository {
     required bool isActive,
   }) async {
     await _requireAdmin(actorId);
-    final existing = await (db.select(db.users)..where((u) => u.id.equals(userId))).getSingleOrNull();
+
+    final existing = await (db.select(db.users)
+          ..where((u) => u.id.equals(userId)))
+        .getSingleOrNull();
+
     if (existing == null) throw StateError('User not found');
 
     await (db.update(db.users)..where((u) => u.id.equals(userId))).write(
@@ -126,7 +143,7 @@ class AuthRepository {
         action: 'update',
         entity: 'user',
         entityId: Value(userId),
-        description: Value('Updated user ' + username.trim()),
+        description: Value('Updated user ${username.trim()}'),
       ),
     );
   }
@@ -137,9 +154,15 @@ class AuthRepository {
     required String newPassword,
   }) async {
     await _requireAdmin(actorId);
-    if (newPassword.length < 6) throw ArgumentError('Password cannot be empty');
 
-    final user = await (db.select(db.users)..where((u) => u.id.equals(userId))).getSingleOrNull();
+    if (newPassword.length < 6) {
+      throw ArgumentError('Password cannot be empty');
+    }
+
+    final user = await (db.select(db.users)
+          ..where((u) => u.id.equals(userId)))
+        .getSingleOrNull();
+
     if (user == null) throw StateError('User not found');
 
     await (db.update(db.users)..where((u) => u.id.equals(userId))).write(
@@ -152,7 +175,7 @@ class AuthRepository {
         action: 'change_password',
         entity: 'user',
         entityId: Value(userId),
-        description: Value('Changed password for ' + user.username),
+        description: Value('Changed password for ${user.username}'),
       ),
     );
   }
