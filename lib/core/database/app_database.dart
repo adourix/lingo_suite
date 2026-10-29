@@ -4,8 +4,6 @@ import 'package:drift/drift.dart';
 
 import 'connection.dart';
 
-// Tables
-
 import 'tables/purchases_table.dart';
 import 'tables/purchase_items_table.dart';
 import 'tables/inventory_movements_table.dart';
@@ -28,35 +26,20 @@ part 'app_database.g.dart';
 @DriftDatabase(
   tables: [
     Categories,
-
     Customers,
-
     Suppliers,
-
     Products,
-
     CustomerPayments,
-
     Purchases,
-
     PurchaseItems,
-
     Sales,
-
     SaleItems,
-
     Payments,
-
     InventoryMovements,
-
     Expenses,
-
     Users,
-
     CashSessions,
-
     ActivityLogs,
-
     Settings,
   ],
 )
@@ -66,73 +49,55 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => 8;
 
-  @override
-  MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (Migrator m) async {
-      await m.createAll();
+  bool _isSha256(String value) =>
+      RegExp(r'^[a-fA-F0-9]{64}$').hasMatch(value);
 
-      await into(users).insert(
-        UsersCompanion.insert(
-          fullName: 'Admin',
-          username: 'admin',
-          password: sha256.convert(utf8.encode('123456')).toString(),
-          role: 'admin',
+  String _hashPassword(String value) =>
+      sha256.convert(utf8.encode(value)).toString();
+
+  Future<void> _upgradeUserPasswords() async {
+    final existingUsers = await select(users).get();
+
+    for (final user in existingUsers) {
+      if (_isSha256(user.password)) continue;
+
+      await (update(users)..where((u) => u.id.equals(user.id))).write(
+        UsersCompanion(
+          password: Value(_hashPassword(user.password)),
         ),
       );
-    },
+    }
+  }
 
-    onUpgrade: (Migrator m, int from, int to) async {
-      if (from < 6) {
-        await m.addColumn(suppliers, suppliers.balance);
-      }
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (Migrator m) async {
+          await m.createAll();
 
-      if (from < 7) {
-        final existingUsers = await select(users).get();
-        for (final user in existingUsers) {
-          final isSha256 =
-              RegExp(r'^[a-fA-F0-9]{64}
-    },
-
-    beforeOpen: (details) async {
-      await customStatement('PRAGMA foreign_keys = ON;');
-    },
-  );
-}
-).hasMatch(user.password);
-          if (isSha256) continue;
-
-          final hash = sha256.convert(utf8.encode(user.password)).toString();
-          await (update(users)..where((u) => u.id.equals(user.id))).write(
-            UsersCompanion(password: Value(hash)),
+          await into(users).insert(
+            UsersCompanion.insert(
+              fullName: 'Admin',
+              username: 'admin',
+              password: _hashPassword('123456'),
+              role: 'admin',
+            ),
           );
-        }
-      }
+        },
+        onUpgrade: (Migrator m, int from, int to) async {
+          if (from < 6) {
+            await m.addColumn(suppliers, suppliers.balance);
+          }
 
-      if (from < 8) {
-        final existingUsers = await select(users).get();
-        for (final user in existingUsers) {
-          final isSha256 =
-              RegExp(r'^[a-fA-F0-9]{64}
-    },
+          if (from < 7) {
+            await _upgradeUserPasswords();
+          }
 
-    beforeOpen: (details) async {
-      await customStatement('PRAGMA foreign_keys = ON;');
-    },
-  );
-}
-).hasMatch(user.password);
-          if (isSha256) continue;
-
-          final hash = sha256.convert(utf8.encode(user.password)).toString();
-          await (update(users)..where((u) => u.id.equals(user.id))).write(
-            UsersCompanion(password: Value(hash)),
-          );
-        }
-      }
-    },
-
-    beforeOpen: (details) async {
-      await customStatement('PRAGMA foreign_keys = ON;');
-    },
-  );
+          if (from < 8) {
+            await _upgradeUserPasswords();
+          }
+        },
+        beforeOpen: (details) async {
+          await customStatement('PRAGMA foreign_keys = ON;');
+        },
+      );
 }
